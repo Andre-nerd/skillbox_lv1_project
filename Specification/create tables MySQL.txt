@@ -1,0 +1,8 @@
+create table page(
+id int PRIMARY KEY  NOT NULL AUTO_INCREMENT,
+site_id int NOT NULL,
+`path` TEXT NOT NULL,
+`code` INT NOT NULL,
+content MEDIUMTEXT NOT NULL,
+FOREIGN KEY (site_id) REFERENCES site (id) ON DELETE CASCADE
+);
