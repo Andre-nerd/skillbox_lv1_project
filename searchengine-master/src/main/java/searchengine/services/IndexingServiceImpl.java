@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import searchengine.model.PageModel;
 import searchengine.model.SiteModel;
 import searchengine.model.SiteStatus;
 import searchengine.repositories.PageModelRepository;
@@ -18,6 +19,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ForkJoinPool;
 
 import static searchengine.controllers.ApiController.isIndexingInProgress;
@@ -34,6 +36,8 @@ public class IndexingServiceImpl implements IndexingService {
     private Map<String, String> sites = new HashMap<>();
 
     private List<ForkJoinPool> forkList = new ArrayList<>();
+
+    public static CopyOnWriteArrayList<PageModel> cashPages;
     Logger logger = LoggerFactory.getLogger(IndexingServiceImpl.class);
 
 
@@ -53,10 +57,11 @@ public class IndexingServiceImpl implements IndexingService {
         logger.info(ServicesMessage.INDEXING_IN_PROGRESS);
 
         for (Map.Entry<String, String> item : sites.entrySet()) {
-            clearDataBase(item.getValue());
+            cashPages = new CopyOnWriteArrayList<>();
+//            clearDataBase(item.getValue());
             ForkJoinPool forkJoinPool = new ForkJoinPool();
             forkList.add(forkJoinPool);
-            goAllPages(item.getKey(), item.getValue(),forkJoinPool);
+            goAllPages(item.getKey(), item.getValue(), forkJoinPool);
         }
         //        forkJoinPool.shutdown();
 //        forkJoinPool.shutdownNow();
@@ -65,34 +70,46 @@ public class IndexingServiceImpl implements IndexingService {
     }
 
     @Override
-    public void clearDataBase(String root) {
-        List<SiteModel> siteModelList = siteModelRepository.findByName(root);
+    @Transactional
+    public void clearDataBase(String name) {
+        List<SiteModel> siteModelList = siteModelRepository.findByName(name);
         siteModelList.forEach(s -> siteModelRepository.delete(s));
     }
 
+    @Transactional
+    private void writeCachePagesToBD(){
+        cashPages.forEach(p -> pageModelRepository.save(p));
+    }
     @Override
-    public void goAllPages(String source_root, String name, ForkJoinPool forkJoinPool ) {
-        SiteModel row = new SiteModel();
-        row.setName(name);
-        row.setStatus(SiteStatus.INDEXING);
-        row.setStatus_time(LocalDateTime.now());
-        row.setUrl(source_root);
-        siteModelRepository.save(row);
+    @Transactional
+    public void goAllPages(String source_root, String name, ForkJoinPool forkJoinPool) {
+        logger.info("SetCurrentStatus: SiteStatus.INDEXING" + name);
+        setCurrentStatus(source_root, name, SiteStatus.INDEXING, null);
         SiteModel site = siteModelRepository.findByName(name).stream().findFirst().orElse(null);
 
         try {
             PageNode root = new PageNode(source_root);
             forkJoinPool.invoke(new MappingSiteRecursiveCycle(pageModelRepository, root, site));
-            row.setStatus_time(LocalDateTime.now());
-            row.setStatus(SiteStatus.INDEXED);
-            siteModelRepository.save(row);
+            logger.info("SetCurrentStatus: SiteStatus.INDEXED" + name);
+            setCurrentStatus(source_root, name, SiteStatus.INDEXED, null);
+            logger.info("The cached pages are being written to the database | size " + cashPages.size());
+            writeCachePagesToBD();
         } catch (Exception ex) {
-            row.setStatus_time(LocalDateTime.now());
-            row.setLast_error(ex.getMessage());
-            row.setStatus(SiteStatus.FAILED);
-            siteModelRepository.save(row);
+            logger.info("public void goAllPages Error" + ex);
+            setCurrentStatus(source_root, name, SiteStatus.FAILED, ex.getMessage());
         }
+    }
 
+    @Transactional
+    private void setCurrentStatus(String source_root, String name, SiteStatus status, String error) {
+        clearDataBase(name);
+        SiteModel row = new SiteModel();
+        row.setName(name);
+        row.setStatus(status);
+        row.setStatus_time(LocalDateTime.now());
+        row.setUrl(source_root);
+        row.setLast_error(error);
+        siteModelRepository.save(row);
     }
 
     @Override

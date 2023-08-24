@@ -8,6 +8,7 @@ import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
 import searchengine.model.PageModel;
 import searchengine.model.SiteModel;
 import searchengine.repositories.PageModelRepository;
@@ -19,6 +20,7 @@ import java.util.concurrent.RecursiveAction;
 import java.util.regex.Pattern;
 
 import static java.lang.Thread.sleep;
+import static searchengine.services.IndexingServiceImpl.cashPages;
 import static searchengine.services.ServicesMessage.URL_PARSING_ERROR;
 
 
@@ -59,29 +61,18 @@ public class MappingSiteRecursiveCycle extends RecursiveAction {
             for (Element a : elements) {
                 String childUrl = a.absUrl("abs:href");
                 Optional<PageModel> sameUrl = pageModelRepository.findByPath(childUrl).stream().findAny();
-                logger.info("Optional >?" + sameUrl);
                 if (sameUrl.isPresent()) continue;
-                try {
-                    logger.info("newRow>>>");
-                    PageModel newRow = createNewRow(childUrl, site);
-                    logger.info("newRow = " + newRow);
-
-                    /** Упорно не хочет делать запись в БД */
-                    pageModelRepository.save(newRow);
-
-
-                } catch (IOException exception){
-                    logger.info(URL_PARSING_ERROR +": " + childUrl + " | " + exception);
-                }
 
                 System.out.println(childUrl);
+                createNewRow(childUrl,site);
+
                 if (isUrlValid(childUrl)) {
                     childUrl = convertPath(childUrl);
                     node.addChild(new PageNode(childUrl));
                 }
             }
         } catch (IOException | InterruptedException e) {
-            System.out.println(e.toString());
+            logger.info("void compute() Error" + e);
         }
 
         for (PageNode child : node.getChildren()) {
@@ -100,17 +91,27 @@ public class MappingSiteRecursiveCycle extends RecursiveAction {
                 && !patternNotAnchor.matcher(url).find();
     }
 
-    private PageModel createNewRow(String path, SiteModel site) throws IOException {
-        PageModel page = new PageModel();
-        page.setPath(path);
-        page.setOwner(site);
-        logger.info("PageModel createNewRow site id" + site.getId());
-        Connection connection = Jsoup.connect(path)
-                .userAgent("FinderSearchBot/1.01 (Windows; U; WindowsNT)")
-                .timeout(TIME_OUT);
-        Document doc = connection.get();
-        page.setCode(connection.response().statusCode());
-        page.setContent(doc.html());
-        return page;
+
+    private void createNewRow(String path, SiteModel site) {
+        try {
+            PageModel page = new PageModel();
+            page.setPath(path);
+            page.setOwner(site);
+            logger.info("PageModel createNewRow site id" + site.getId());
+            Connection connection = Jsoup.connect(path)
+                    .userAgent("FinderSearchBot/1.01 (Windows; U; WindowsNT)")
+                    .timeout(TIME_OUT);
+            Document doc = connection.get();
+            page.setCode(connection.response().statusCode());
+            page.setContent("doc.html()");
+
+            /** Упорно не хочет делать запись в БД */
+//            pageModelRepository.save(page);
+            cashPages.add(page);
+
+
+        } catch (Exception exception){
+            logger.info(URL_PARSING_ERROR +": " + path + " | " + exception);
+        }
     }
 }
