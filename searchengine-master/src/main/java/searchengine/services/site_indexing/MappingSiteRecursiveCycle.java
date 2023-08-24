@@ -107,6 +107,7 @@ public class MappingSiteRecursiveCycle extends RecursiveAction {
 
             /** Упорно не хочет делать запись в БД */
 //            pageModelRepository.save(page);
+            /** Пока добавляю в кеш, а после окончания обхода страниц - пишу в БД */
             cashPages.add(page);
 
 
