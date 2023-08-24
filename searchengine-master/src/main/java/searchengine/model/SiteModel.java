@@ -7,6 +7,7 @@ import lombok.ToString;
 
 import javax.persistence.*;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 
@@ -25,7 +26,7 @@ public class SiteModel {
     private SiteStatus status;
 
     @Column(name = "status_time")
-    private LocalDate status_time;
+    private LocalDateTime status_time;
 
     @Column(name = "last_error")
     private String last_error;

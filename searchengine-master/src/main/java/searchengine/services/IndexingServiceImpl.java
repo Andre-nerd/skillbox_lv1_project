@@ -6,8 +6,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import searchengine.config.Site;
-import searchengine.controllers.ApiController;
 import searchengine.model.SiteModel;
 import searchengine.model.SiteStatus;
 import searchengine.repositories.PageModelRepository;
@@ -15,7 +13,7 @@ import searchengine.repositories.SiteModelRepository;
 import searchengine.services.site_indexing.MappingSiteRecursiveCycle;
 import searchengine.services.site_indexing.PageNode;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -60,6 +58,8 @@ public class IndexingServiceImpl implements IndexingService {
             forkList.add(forkJoinPool);
             goAllPages(item.getKey(), item.getValue(),forkJoinPool);
         }
+        //        forkJoinPool.shutdown();
+//        forkJoinPool.shutdownNow();
         isIndexingInProgress = false;
         logger.info(ServicesMessage.INDEXING_FINISHED);
     }
@@ -75,14 +75,24 @@ public class IndexingServiceImpl implements IndexingService {
         SiteModel row = new SiteModel();
         row.setName(name);
         row.setStatus(SiteStatus.INDEXING);
-        row.setStatus_time(LocalDate.now());
+        row.setStatus_time(LocalDateTime.now());
         row.setUrl(source_root);
         siteModelRepository.save(row);
-        PageNode root = new PageNode(source_root);
+        SiteModel site = siteModelRepository.findByName(name).stream().findFirst().orElse(null);
 
-//        forkJoinPool.shutdown();
-//        forkJoinPool.shutdownNow();
-        forkJoinPool.invoke(new MappingSiteRecursiveCycle(pageModelRepository, root));
+        try {
+            PageNode root = new PageNode(source_root);
+            forkJoinPool.invoke(new MappingSiteRecursiveCycle(pageModelRepository, root, site));
+            row.setStatus_time(LocalDateTime.now());
+            row.setStatus(SiteStatus.INDEXED);
+            siteModelRepository.save(row);
+        } catch (Exception ex) {
+            row.setStatus_time(LocalDateTime.now());
+            row.setLast_error(ex.getMessage());
+            row.setStatus(SiteStatus.FAILED);
+            siteModelRepository.save(row);
+        }
+
     }
 
     @Override

@@ -15,6 +15,7 @@ import searchengine.repositories.PageModelRepository;
 import searchengine.repositories.SiteModelRepository;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Controller
@@ -43,7 +44,11 @@ public class DefaultController {
 //        testSiteSQL();
 //        testLemma();
 //
-//        SiteModel siteModel = siteModelRepository.findById(1).stream().findAny().orElse(null);
+//        SiteModel siteModel = siteModelRepository.findById(103).stream().findAny().orElse(null);
+//        testPageSQL(siteModel);
+
+
+
 //        if (siteModel != null) {
 //            List<PageModel> pageModelList = siteModel.getPages();
 //            pageModelList.forEach(System.out::println);
@@ -87,7 +92,7 @@ public class DefaultController {
             site.setStatus(SiteStatus.INDEXED);
             site.setUrl(url);
             site.setName(name);
-            site.setStatus_time(LocalDate.now());
+            site.setStatus_time(LocalDateTime.now());
             site.setLast_error("No error OK");
             siteModelRepository.save(site);
         }
@@ -100,6 +105,7 @@ public class DefaultController {
         page.setPath("path/page/put");
         page.setCode(200);
         page.setContent("Thi is content");
+        logger.info("testPageSQL page " + page);
         pageModelRepository.save(page);
     }
 
