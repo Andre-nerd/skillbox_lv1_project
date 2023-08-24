@@ -48,6 +48,8 @@ public class IndexingServiceImpl implements IndexingService {
         this.environment = environment;
         sites.put("https://www.lenta.ru", "Лента");
         sites.put("https://www.skillbox.ru", "Skillbox");
+//        sites.put("http://www.playback.ru/", "Playback");
+//        sites.put("https://volochek.life/", "Volochek");
     }
 
 

@@ -103,7 +103,7 @@ public class MappingSiteRecursiveCycle extends RecursiveAction {
                     .timeout(TIME_OUT);
             Document doc = connection.get();
             page.setCode(connection.response().statusCode());
-            page.setContent("doc.html()");
+            page.setContent(doc.html());
 
             /** Упорно не хочет делать запись в БД */
 //            pageModelRepository.save(page);
