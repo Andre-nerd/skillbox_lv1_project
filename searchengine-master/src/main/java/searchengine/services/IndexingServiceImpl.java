@@ -1,22 +1,68 @@
 package searchengine.services;
 
-import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import searchengine.config.Site;
+import searchengine.controllers.ApiController;
 import searchengine.model.SiteModel;
+import searchengine.model.SiteStatus;
 import searchengine.repositories.PageModelRepository;
 import searchengine.repositories.SiteModelRepository;
+import searchengine.services.site_indexing.MappingSiteRecursiveCycle;
+import searchengine.services.site_indexing.PageNode;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ForkJoinPool;
+
+import static searchengine.controllers.ApiController.isIndexingInProgress;
 
 @Service
-@RequiredArgsConstructor
 @Transactional
-public class IndexingServiceImpl implements IndexingService{
+public class IndexingServiceImpl implements IndexingService {
 
     private final SiteModelRepository siteModelRepository;
     private final PageModelRepository pageModelRepository;
+    private final Environment environment;
 
+    //    @Value("#{${indexing-settings}}")
+    private Map<String, String> sites = new HashMap<>();
+
+    private List<ForkJoinPool> forkList = new ArrayList<>();
+    Logger logger = LoggerFactory.getLogger(IndexingServiceImpl.class);
+
+
+    @Autowired
+    public IndexingServiceImpl(SiteModelRepository siteModelRepository, PageModelRepository pageModelRepository, Environment environment) {
+        this.siteModelRepository = siteModelRepository;
+        this.pageModelRepository = pageModelRepository;
+        this.environment = environment;
+        sites.put("https://www.lenta.ru", "Лента");
+        sites.put("https://www.skillbox.ru", "Skillbox");
+    }
+
+
+    @Override
+    public void startIndexing() {
+        isIndexingInProgress = true;
+        logger.info(ServicesMessage.INDEXING_IN_PROGRESS);
+
+        for (Map.Entry<String, String> item : sites.entrySet()) {
+            clearDataBase(item.getValue());
+            ForkJoinPool forkJoinPool = new ForkJoinPool();
+            forkList.add(forkJoinPool);
+            goAllPages(item.getKey(), item.getValue(),forkJoinPool);
+        }
+        isIndexingInProgress = false;
+        logger.info(ServicesMessage.INDEXING_FINISHED);
+    }
 
     @Override
     public void clearDataBase(String root) {
@@ -25,12 +71,22 @@ public class IndexingServiceImpl implements IndexingService{
     }
 
     @Override
-    public void createNewRowIndexing(String root) {
+    public void goAllPages(String source_root, String name, ForkJoinPool forkJoinPool ) {
+        SiteModel row = new SiteModel();
+        row.setName(name);
+        row.setStatus(SiteStatus.INDEXING);
+        row.setStatus_time(LocalDate.now());
+        row.setUrl(source_root);
+        siteModelRepository.save(row);
+        PageNode root = new PageNode(source_root);
 
+//        forkJoinPool.shutdown();
+//        forkJoinPool.shutdownNow();
+        forkJoinPool.invoke(new MappingSiteRecursiveCycle(pageModelRepository, root));
     }
 
     @Override
-    public void goAllPages(String root) {
+    public void createNewRowIndexing(String root) {
 
     }
 

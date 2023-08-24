@@ -40,7 +40,7 @@ public class DefaultController {
     @RequestMapping("/")
     public String index() {
         logger.info("Logger report about index()");
-        testSiteSQL();
+//        testSiteSQL();
 //        testLemma();
 //
 //        SiteModel siteModel = siteModelRepository.findById(1).stream().findAny().orElse(null);

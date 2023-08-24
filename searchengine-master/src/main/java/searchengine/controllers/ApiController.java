@@ -19,7 +19,7 @@ public class ApiController {
 
     private final StatisticsService statisticsService;
     private final IndexingService indexingService;
-    private static boolean isIndexingInProgress = false;
+    public static boolean isIndexingInProgress = false;
     Logger logger = LoggerFactory.getLogger(ApiController.class);
 
     public ApiController(StatisticsService statisticsService, IndexingService indexingService) {
@@ -43,9 +43,9 @@ public class ApiController {
             isIndexingInProgress = true;
         }
         try{
-            indexingService.clearDataBase("1");
+            indexingService.startIndexing();
         } catch (Exception ex){
-            logger.info("indexingService.clearDataBase: " + ex);
+            logger.info("Error >> indexingService.startIndexing(): " + ex);
         }
         return ResponseEntity.ok(response);
     }

@@ -6,3 +6,7 @@ site_id int NOT NULL,
 content MEDIUMTEXT NOT NULL,
 FOREIGN KEY (site_id) REFERENCES site (id) ON DELETE CASCADE
 );
+
+insert into page (site_id,`path`,`code`,content) VALUES (10,'bbbbb',700,'bbbbb');
+
+SET SQL_SAFE_UPDATES = 0;
