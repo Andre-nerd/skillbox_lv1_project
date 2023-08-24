@@ -65,7 +65,11 @@ public class MappingSiteRecursiveCycle extends RecursiveAction {
                     logger.info("newRow>>>");
                     PageModel newRow = createNewRow(childUrl, site);
                     logger.info("newRow = " + newRow);
+
+                    /** Упорно не хочет делать запись в БД */
                     pageModelRepository.save(newRow);
+
+
                 } catch (IOException exception){
                     logger.info(URL_PARSING_ERROR +": " + childUrl + " | " + exception);
                 }
