@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
+import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import searchengine.model.PageModel;
@@ -65,18 +66,7 @@ public class IndexingServiceImpl implements IndexingService {
         logger.info(ServicesMessage.INDEXING_IN_PROGRESS);
 
         for (Map.Entry<String, String> item : sites.entrySet()) {
-            CopyOnWriteArrayList<PageModel> cashPages = new CopyOnWriteArrayList<>();
-            CopyOnWriteArrayList<String> cashPath = new CopyOnWriteArrayList<>();
-            cashPagesMap.put(item.getKey(), cashPages);
-            cashPathMap.put(item.getKey(), cashPath);
-            clearDataBase(item.getValue());
-            SiteModel site = setIndexingStatus(item.getKey(), item.getValue(),null);
-            ForkJoinPool forkJoinPool = new ForkJoinPool();
-            forkList.add(forkJoinPool);
-            SiteStatus status = goAllPages(site, forkJoinPool);
-            site.setStatus(status);
-            logger.info("The cached pages are being written to the database | size " + cashPages.size());
-            writeCachePagesToBD(cashPages);
+            startMappingSite(item);
         }
         //        forkJoinPool.shutdown();
 //        forkJoinPool.shutdownNow();
@@ -84,7 +74,22 @@ public class IndexingServiceImpl implements IndexingService {
         logger.info(ServicesMessage.INDEXING_FINISHED);
     }
 
-    @Override
+    @Transactional
+    private void startMappingSite(Map.Entry<String, String> item){
+        CopyOnWriteArrayList<PageModel> cashPages = new CopyOnWriteArrayList<>();
+        CopyOnWriteArrayList<String> cashPath = new CopyOnWriteArrayList<>();
+        cashPagesMap.put(item.getKey(), cashPages);
+        cashPathMap.put(item.getKey(), cashPath);
+        clearDataBase(item.getValue());
+        SiteModel site = setIndexingStatus(item.getKey(), item.getValue(),null);
+        ForkJoinPool forkJoinPool = new ForkJoinPool();
+        forkList.add(forkJoinPool);
+        SiteStatus status = goAllPages(site, forkJoinPool);
+        site.setStatus(status);
+        logger.info("The cached pages are being written to the database | size " + cashPages.size());
+        writeCachePagesToBD(cashPages);
+    }
+
     @Transactional
     public void clearDataBase(String name) {
         List<SiteModel> siteModelList = siteModelRepository.findByName(name);
@@ -101,7 +106,6 @@ public class IndexingServiceImpl implements IndexingService {
     }
 
     @Transactional
-    @Override
     public SiteStatus goAllPages(SiteModel site, ForkJoinPool forkJoinPool) {
         logger.info("SetCurrentStatus: SiteStatus.INDEXING" + site.getUrl());
 
@@ -127,25 +131,5 @@ public class IndexingServiceImpl implements IndexingService {
         siteModelRepository.save(row);
         SiteModel site = siteModelRepository.findByName(name).stream().findFirst().orElse(null);
         return site;
-    }
-
-    @Override
-    public void createNewRowIndexing(String root) {
-
-    }
-
-    @Override
-    public void updateStatusTime(String root) {
-
-    }
-
-    @Override
-    public void indexFinished(String root) {
-
-    }
-
-    @Override
-    public void indexingFailed(String root) {
-
     }
 }
