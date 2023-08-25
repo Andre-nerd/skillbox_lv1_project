@@ -16,12 +16,12 @@ import searchengine.services.IndexingServiceImpl;
 
 import java.io.IOException;
 import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.RecursiveAction;
 import java.util.regex.Pattern;
 
 import static java.lang.Thread.sleep;
-import static searchengine.services.IndexingServiceImpl.cashPages;
-import static searchengine.services.IndexingServiceImpl.cashPath;
+import static searchengine.services.IndexingServiceImpl.*;
 import static searchengine.services.ServicesMessage.URL_PARSING_ERROR;
 
 
@@ -35,6 +35,9 @@ public class MappingSiteRecursiveCycle extends RecursiveAction {
     private static final Pattern patternNotFile = Pattern.compile("([^\\s]+(\\.(?i)(jpg|png|gif|bmp|pdf))$)");
     private static final Pattern patternNotAnchor = Pattern.compile("#([\\w\\-]+)?$");
     private final Pattern patternRoot;
+
+    private final CopyOnWriteArrayList<PageModel> cashPages;
+    private  final CopyOnWriteArrayList<String> cashPath;
     private static int maxCountCycle = 0;
 
     Logger logger = LoggerFactory.getLogger(MappingSiteRecursiveCycle.class);
@@ -47,6 +50,8 @@ public class MappingSiteRecursiveCycle extends RecursiveAction {
         this.node = node;
         this.site = site;
         patternRoot = Pattern.compile("^" + this.node.getUrl());
+        cashPages = cashPagesMap.get(site.getUrl());
+        cashPath = cashPathMap.get(site.getUrl());
     }
 
     @Override
@@ -55,8 +60,7 @@ public class MappingSiteRecursiveCycle extends RecursiveAction {
         try {
             sleep(SLEEP_TIME);
             if (cashPath.contains(node.getUrl())) {
-                maxCountCycle++;
-                logger.info("URL already indexed | maxCountCycle " + maxCountCycle);
+                logger.info("URL already indexed | skipped ");
                 return;
             }
             Connection connection = Jsoup.connect(node.getUrl())
@@ -104,13 +108,13 @@ public class MappingSiteRecursiveCycle extends RecursiveAction {
             PageModel page = new PageModel();
             page.setPath(path);
             page.setOwner(site);
-            logger.info("PageModel createNewRow site id" + site.getId());
             Connection connection = Jsoup.connect(path)
                     .userAgent("YaSearchBot/1.02 (Windows; U; WindowsNT)")
                     .timeout(TIME_OUT);
             Document doc = connection.get();
             page.setCode(connection.response().statusCode());
             page.setContent(doc.html());
+            logger.info("PageModel createNewRow | code: " + page.getCode() + " | owner: " + page.getOwner());
 
             /** Упорно не хочет делать запись в БД */
 //            pageModelRepository.save(page);

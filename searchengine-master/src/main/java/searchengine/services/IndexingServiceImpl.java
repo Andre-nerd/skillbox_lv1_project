@@ -39,8 +39,10 @@ public class IndexingServiceImpl implements IndexingService {
 
     private List<ForkJoinPool> forkList = new ArrayList<>();
 
-    public static CopyOnWriteArrayList<PageModel> cashPages;
-    public static CopyOnWriteArrayList<String> cashPath;
+//    public static CopyOnWriteArrayList<PageModel> cashPages;
+//    public static CopyOnWriteArrayList<String> cashPath;
+    public static HashMap<String, CopyOnWriteArrayList<PageModel>> cashPagesMap = new HashMap<>();
+    public static HashMap<String, CopyOnWriteArrayList<String>> cashPathMap = new HashMap<>();
     Logger logger = LoggerFactory.getLogger(IndexingServiceImpl.class);
 
 
@@ -63,8 +65,10 @@ public class IndexingServiceImpl implements IndexingService {
         logger.info(ServicesMessage.INDEXING_IN_PROGRESS);
 
         for (Map.Entry<String, String> item : sites.entrySet()) {
-            cashPages = new CopyOnWriteArrayList<>();
-            cashPath = new CopyOnWriteArrayList<>();
+            CopyOnWriteArrayList<PageModel> cashPages = new CopyOnWriteArrayList<>();
+            CopyOnWriteArrayList<String> cashPath = new CopyOnWriteArrayList<>();
+            cashPagesMap.put(item.getKey(), cashPages);
+            cashPathMap.put(item.getKey(), cashPath);
             clearDataBase(item.getValue());
             SiteModel site = setIndexingStatus(item.getKey(), item.getValue(),null);
             ForkJoinPool forkJoinPool = new ForkJoinPool();
@@ -72,7 +76,7 @@ public class IndexingServiceImpl implements IndexingService {
             SiteStatus status = goAllPages(site, forkJoinPool);
             site.setStatus(status);
             logger.info("The cached pages are being written to the database | size " + cashPages.size());
-            writeCachePagesToBD();
+            writeCachePagesToBD(cashPages);
         }
         //        forkJoinPool.shutdown();
 //        forkJoinPool.shutdownNow();
@@ -88,7 +92,7 @@ public class IndexingServiceImpl implements IndexingService {
     }
 
     @Transactional
-    private void writeCachePagesToBD() {
+    private void writeCachePagesToBD(CopyOnWriteArrayList<PageModel> cashPages) {
         try {
             cashPages.forEach(pageModelRepository::save);
         } catch (Exception ex){
