@@ -7,6 +7,7 @@ import org.hibernate.cfg.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Service;
@@ -34,6 +35,8 @@ import static searchengine.controllers.ApiController.isIndexingInProgress;
 @Service
 @RequiredArgsConstructor
 public class IndexingServiceImpl implements IndexingService {
+    @Value("${user-agent}")
+    public static String userAgentName;
 
     private final SiteModelRepository siteModelRepository;
     private final PageModelRepository pageModelRepository;

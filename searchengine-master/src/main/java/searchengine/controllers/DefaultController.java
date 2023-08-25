@@ -33,8 +33,6 @@ public class DefaultController {
 
     Logger logger = LoggerFactory.getLogger(DefaultController.class);
 
-    @Value("${some-value}")
-    private String propValue;
     /**
      * Метод формирует страницу из HTML-файла index.html,
      * который находится в папке resources/templates.

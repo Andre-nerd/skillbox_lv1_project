@@ -109,7 +109,7 @@ public class MappingSiteRecursiveCycle extends RecursiveAction {
             page.setPath(path);
             page.setOwner(site);
             Connection connection = Jsoup.connect(path)
-                    .userAgent("YaSearchBot/1.02 (Windows; U; WindowsNT)")
+                    .userAgent(userAgentName)
                     .timeout(TIME_OUT);
             Document doc = connection.get();
             page.setCode(connection.response().statusCode());
