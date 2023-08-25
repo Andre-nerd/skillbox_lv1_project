@@ -21,6 +21,7 @@ import java.util.regex.Pattern;
 
 import static java.lang.Thread.sleep;
 import static searchengine.services.IndexingServiceImpl.cashPages;
+import static searchengine.services.IndexingServiceImpl.cashPath;
 import static searchengine.services.ServicesMessage.URL_PARSING_ERROR;
 
 
@@ -34,6 +35,7 @@ public class MappingSiteRecursiveCycle extends RecursiveAction {
     private static final Pattern patternNotFile = Pattern.compile("([^\\s]+(\\.(?i)(jpg|png|gif|bmp|pdf))$)");
     private static final Pattern patternNotAnchor = Pattern.compile("#([\\w\\-]+)?$");
     private final Pattern patternRoot;
+    private static int maxCountCycle = 0;
 
     Logger logger = LoggerFactory.getLogger(MappingSiteRecursiveCycle.class);
 
@@ -52,6 +54,11 @@ public class MappingSiteRecursiveCycle extends RecursiveAction {
         System.out.println("new void Compute launched __________________________" + node.getUrl());
         try {
             sleep(SLEEP_TIME);
+            if (cashPath.contains(node.getUrl())) {
+                maxCountCycle++;
+                logger.info("URL already indexed | maxCountCycle " + maxCountCycle);
+                return;
+            }
             Connection connection = Jsoup.connect(node.getUrl())
                     .userAgent("FinderSearchBot/1.01 (Windows; U; WindowsNT)")
                     .timeout(TIME_OUT);
@@ -60,11 +67,11 @@ public class MappingSiteRecursiveCycle extends RecursiveAction {
             Elements elements = page.select("body").select("a");
             for (Element a : elements) {
                 String childUrl = a.absUrl("abs:href");
-                Optional<PageModel> sameUrl = pageModelRepository.findByPath(childUrl).stream().findAny();
-                if (sameUrl.isPresent()) continue;
+//                Optional<PageModel> sameUrl = pageModelRepository.findByPath(childUrl).stream().findAny();
+//                if (sameUrl.isPresent()) continue;
 
                 System.out.println(childUrl);
-                createNewRow(childUrl,site);
+                createNewRow(childUrl, site);
 
                 if (isUrlValid(childUrl)) {
                     childUrl = convertPath(childUrl);
@@ -99,7 +106,7 @@ public class MappingSiteRecursiveCycle extends RecursiveAction {
             page.setOwner(site);
             logger.info("PageModel createNewRow site id" + site.getId());
             Connection connection = Jsoup.connect(path)
-                    .userAgent("FinderSearchBot/1.01 (Windows; U; WindowsNT)")
+                    .userAgent("YaSearchBot/1.02 (Windows; U; WindowsNT)")
                     .timeout(TIME_OUT);
             Document doc = connection.get();
             page.setCode(connection.response().statusCode());
@@ -108,11 +115,12 @@ public class MappingSiteRecursiveCycle extends RecursiveAction {
             /** Упорно не хочет делать запись в БД */
 //            pageModelRepository.save(page);
             /** Пока добавляю в кеш, а после окончания обхода страниц - пишу в БД */
+            cashPath.add(path);
             cashPages.add(page);
 
 
-        } catch (Exception exception){
-            logger.info(URL_PARSING_ERROR +": " + path + " | " + exception);
+        } catch (Exception exception) {
+            logger.info(URL_PARSING_ERROR + ": " + path + " | " + exception);
         }
     }
 }

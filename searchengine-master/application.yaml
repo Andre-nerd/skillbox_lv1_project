@@ -22,3 +22,4 @@ spring:
         dialect: org.hibernate.dialect.MySQL8Dialect
         ddl-auto: update
         show-sql: true
+        autocommit: true

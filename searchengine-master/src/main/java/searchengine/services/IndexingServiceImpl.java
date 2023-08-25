@@ -1,5 +1,8 @@
 package searchengine.services;
 
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.cfg.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +28,6 @@ import java.util.concurrent.ForkJoinPool;
 import static searchengine.controllers.ApiController.isIndexingInProgress;
 
 @Service
-@Transactional
 public class IndexingServiceImpl implements IndexingService {
 
     private final SiteModelRepository siteModelRepository;
@@ -38,6 +40,7 @@ public class IndexingServiceImpl implements IndexingService {
     private List<ForkJoinPool> forkList = new ArrayList<>();
 
     public static CopyOnWriteArrayList<PageModel> cashPages;
+    public static CopyOnWriteArrayList<String> cashPath;
     Logger logger = LoggerFactory.getLogger(IndexingServiceImpl.class);
 
 
@@ -46,10 +49,11 @@ public class IndexingServiceImpl implements IndexingService {
         this.siteModelRepository = siteModelRepository;
         this.pageModelRepository = pageModelRepository;
         this.environment = environment;
-        sites.put("https://www.lenta.ru", "Лента");
-        sites.put("https://www.skillbox.ru", "Skillbox");
+//        sites.put("https://www.lenta.ru", "Лента");
+//        sites.put("https://www.skillbox.ru", "Skillbox");
+
+        sites.put("https://volochek.life/", "Volochek");
 //        sites.put("http://www.playback.ru/", "Playback");
-//        sites.put("https://volochek.life/", "Volochek");
     }
 
 
@@ -60,10 +64,16 @@ public class IndexingServiceImpl implements IndexingService {
 
         for (Map.Entry<String, String> item : sites.entrySet()) {
             cashPages = new CopyOnWriteArrayList<>();
-//            clearDataBase(item.getValue());
+            cashPath = new CopyOnWriteArrayList<>();
+            clearDataBase(item.getValue());
+            setCurrentStatus(item.getKey(), item.getValue(), SiteStatus.INDEXING, null);
             ForkJoinPool forkJoinPool = new ForkJoinPool();
             forkList.add(forkJoinPool);
-            goAllPages(item.getKey(), item.getValue(), forkJoinPool);
+            SiteStatus status = goAllPages(item.getKey(), item.getValue(), forkJoinPool);
+            clearDataBase(item.getValue());
+            setCurrentStatus(item.getKey(), item.getValue(), status, null);
+            logger.info("The cached pages are being written to the database | size " + cashPages.size());
+            writeCachePagesToBD();
         }
         //        forkJoinPool.shutdown();
 //        forkJoinPool.shutdownNow();
@@ -79,32 +89,33 @@ public class IndexingServiceImpl implements IndexingService {
     }
 
     @Transactional
-    private void writeCachePagesToBD(){
-        cashPages.forEach(p -> pageModelRepository.save(p));
+    private void writeCachePagesToBD() {
+        try {
+            cashPages.forEach(pageModelRepository::save);
+        } catch (Exception ex){
+            logger.info("Error >> writeCachePagesToBD()" + ex);
+        }
     }
-    @Override
+
     @Transactional
-    public void goAllPages(String source_root, String name, ForkJoinPool forkJoinPool) {
+    @Override
+    public SiteStatus goAllPages(String source_root, String name, ForkJoinPool forkJoinPool) {
         logger.info("SetCurrentStatus: SiteStatus.INDEXING" + name);
-        setCurrentStatus(source_root, name, SiteStatus.INDEXING, null);
         SiteModel site = siteModelRepository.findByName(name).stream().findFirst().orElse(null);
 
         try {
             PageNode root = new PageNode(source_root);
             forkJoinPool.invoke(new MappingSiteRecursiveCycle(pageModelRepository, root, site));
             logger.info("SetCurrentStatus: SiteStatus.INDEXED" + name);
-            setCurrentStatus(source_root, name, SiteStatus.INDEXED, null);
-            logger.info("The cached pages are being written to the database | size " + cashPages.size());
-            writeCachePagesToBD();
+            return SiteStatus.INDEXED;
         } catch (Exception ex) {
             logger.info("public void goAllPages Error" + ex);
-            setCurrentStatus(source_root, name, SiteStatus.FAILED, ex.getMessage());
+            return SiteStatus.FAILED;
         }
     }
 
-    @Transactional
+
     private void setCurrentStatus(String source_root, String name, SiteStatus status, String error) {
-        clearDataBase(name);
         SiteModel row = new SiteModel();
         row.setName(name);
         row.setStatus(status);
