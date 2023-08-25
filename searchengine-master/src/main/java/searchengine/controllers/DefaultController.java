@@ -1,11 +1,15 @@
 package searchengine.controllers;
 
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestMapping;
+import searchengine.config.SitesList;
 import searchengine.model.Lemma;
 import searchengine.model.PageModel;
 import searchengine.model.SiteModel;
@@ -16,9 +20,12 @@ import searchengine.repositories.SiteModelRepository;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 @Controller
+@RequiredArgsConstructor
 public class DefaultController {
     private final SiteModelRepository siteModelRepository;
     private final PageModelRepository pageModelRepository;
@@ -26,13 +33,8 @@ public class DefaultController {
 
     Logger logger = LoggerFactory.getLogger(DefaultController.class);
 
-    @Autowired
-    public DefaultController(SiteModelRepository siteModelRepository, PageModelRepository pageModelRepository, LemmaRepository lemmaRepository) {
-        this.siteModelRepository = siteModelRepository;
-        this.pageModelRepository = pageModelRepository;
-        this.lemmaRepository = lemmaRepository;
-    }
-
+    @Value("${some-value}")
+    private String propValue;
     /**
      * Метод формирует страницу из HTML-файла index.html,
      * который находится в папке resources/templates.

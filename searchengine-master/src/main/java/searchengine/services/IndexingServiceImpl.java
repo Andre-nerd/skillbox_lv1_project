@@ -1,5 +1,6 @@
 package searchengine.services;
 
+import lombok.RequiredArgsConstructor;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
@@ -10,6 +11,8 @@ import org.springframework.core.env.Environment;
 import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import searchengine.config.Site;
+import searchengine.config.SitesList;
 import searchengine.model.PageModel;
 import searchengine.model.SiteModel;
 import searchengine.model.SiteStatus;
@@ -29,35 +32,19 @@ import java.util.concurrent.ForkJoinPool;
 import static searchengine.controllers.ApiController.isIndexingInProgress;
 
 @Service
+@RequiredArgsConstructor
 public class IndexingServiceImpl implements IndexingService {
 
     private final SiteModelRepository siteModelRepository;
     private final PageModelRepository pageModelRepository;
     private final Environment environment;
 
-    //    @Value("#{${indexing-settings}}")
-    private Map<String, String> sites = new HashMap<>();
-
+    private final SitesList sites;
     private List<ForkJoinPool> forkList = new ArrayList<>();
 
-    //    public static CopyOnWriteArrayList<PageModel> cashPages;
-//    public static CopyOnWriteArrayList<String> cashPath;
     public static HashMap<String, CopyOnWriteArrayList<PageModel>> cashPagesMap = new HashMap<>();
     public static HashMap<String, CopyOnWriteArrayList<String>> cashPathMap = new HashMap<>();
     Logger logger = LoggerFactory.getLogger(IndexingServiceImpl.class);
-
-
-    @Autowired
-    public IndexingServiceImpl(SiteModelRepository siteModelRepository, PageModelRepository pageModelRepository, Environment environment) {
-        this.siteModelRepository = siteModelRepository;
-        this.pageModelRepository = pageModelRepository;
-        this.environment = environment;
-        sites.put("https://www.lenta.ru", "Лента");
-//        sites.put("https://www.skillbox.ru", "Skillbox");
-
-//        sites.put("https://volochek.life/", "Volochek");
-//        sites.put("http://www.playback.ru/", "Playback");
-    }
 
 
     @Override
@@ -65,26 +52,25 @@ public class IndexingServiceImpl implements IndexingService {
     public void startIndexing() {
         isIndexingInProgress = true;
         logger.info(ServicesMessage.INDEXING_IN_PROGRESS);
-        Thread thread = new Thread();
-        for (Map.Entry<String, String> item : sites.entrySet()) {
-            thread = new Thread(() -> {
-                startMappingSite(item);
-            });
-            thread.start();
+        List<Site> sitesLists = sites.getSites();
 
+        for(Site item : sitesLists) {
+            startMappingSite(item);
         }
         isIndexingInProgress = false;
         logger.info(ServicesMessage.INDEXING_FINISHED);
     }
 
-    private void startMappingSite(Map.Entry<String, String> item) {
+    private void startMappingSite(Site siteItem) {
+        logger.info("Site name: " + siteItem.getName() );
+        logger.info("Site url: " + siteItem.getUrl() );
         CopyOnWriteArrayList<PageModel> cashPages = new CopyOnWriteArrayList<>();
         CopyOnWriteArrayList<String> cashPath = new CopyOnWriteArrayList<>();
-        cashPagesMap.put(item.getKey(), cashPages);
-        cashPathMap.put(item.getKey(), cashPath);
+        cashPagesMap.put(siteItem.getUrl(), cashPages);
+        cashPathMap.put(siteItem.getUrl(), cashPath);
 
-        clearDataBase(item.getValue());
-        SiteModel site = setIndexingStatus(item.getKey(), item.getValue(), null);
+        clearDataBase(siteItem.getName());
+        SiteModel site = setIndexingStatus(siteItem.getUrl(), siteItem.getName(), null);
 
         ForkJoinPool forkJoinPool = new ForkJoinPool();
         forkList.add(forkJoinPool);
@@ -104,7 +90,10 @@ public class IndexingServiceImpl implements IndexingService {
     @Transactional
     public void clearDataBase(String name) {
         List<SiteModel> siteModelList = siteModelRepository.findByName(name);
-        siteModelList.forEach(s -> siteModelRepository.delete(s));
+        siteModelList.forEach(s -> {
+            logger.info("Find in BD :" + s.getId() +" | " + s.getName() + " | deleting");
+            siteModelRepository.delete(s);
+        });
     }
 
     @Transactional
