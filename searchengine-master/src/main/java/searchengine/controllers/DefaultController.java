@@ -44,8 +44,20 @@ public class DefaultController {
 //        testSiteSQL();
 //        testLemma();
 //
-//        SiteModel siteModel = siteModelRepository.findById(103).stream().findAny().orElse(null);
-//        testPageSQL(siteModel);
+//        try {
+//            Thread thread = new Thread(() -> {
+//                SiteModel siteModel = siteModelRepository.findById(237).stream().findAny().orElse(null);
+//                new Thread(()->{
+//                    testPageSQL(siteModel);
+//                }
+//                ).start();
+////
+//            }
+//            );
+//            thread.start();
+//        } catch (Exception ex){
+//            logger.info("Error >> " +ex);
+//        }
 
 
 

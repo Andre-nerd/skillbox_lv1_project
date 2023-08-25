@@ -47,6 +47,8 @@ public class ApiController {
         } catch (Exception ex){
             logger.info("Error >> indexingService.startIndexing(): " + ex);
         }
-        return ResponseEntity.ok(response);
+        ResponseEntity responseEntity = ResponseEntity.ok(response);
+        logger.info("ApiController | response " + responseEntity);
+        return responseEntity;
     }
 }

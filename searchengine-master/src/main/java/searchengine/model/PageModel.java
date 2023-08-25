@@ -17,7 +17,7 @@ public class PageModel {
     @Column(name = "id")
     private int id;
 
-    @ManyToOne(cascade = CascadeType.ALL)
+    @ManyToOne(cascade = CascadeType.ALL,fetch= FetchType.EAGER)
     @JoinColumn(name = "site_id", referencedColumnName = "id")
     SiteModel owner;
 
