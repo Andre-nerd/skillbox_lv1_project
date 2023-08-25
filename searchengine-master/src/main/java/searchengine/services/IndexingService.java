@@ -1,5 +1,6 @@
 package searchengine.services;
 
+import searchengine.model.SiteModel;
 import searchengine.model.SiteStatus;
 
 import java.util.concurrent.ForkJoinPool;
@@ -10,7 +11,7 @@ public interface IndexingService {
 
     void createNewRowIndexing(String root);
 
-    SiteStatus goAllPages(String source_root, String name, ForkJoinPool forkJoinPool);
+    SiteStatus goAllPages(SiteModel site, ForkJoinPool forkJoinPool);
 
     void updateStatusTime(String root);
 

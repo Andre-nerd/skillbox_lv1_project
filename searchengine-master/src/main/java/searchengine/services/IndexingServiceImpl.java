@@ -66,12 +66,11 @@ public class IndexingServiceImpl implements IndexingService {
             cashPages = new CopyOnWriteArrayList<>();
             cashPath = new CopyOnWriteArrayList<>();
             clearDataBase(item.getValue());
-            setCurrentStatus(item.getKey(), item.getValue(), SiteStatus.INDEXING, null);
+            SiteModel site = setIndexingStatus(item.getKey(), item.getValue(),null);
             ForkJoinPool forkJoinPool = new ForkJoinPool();
             forkList.add(forkJoinPool);
-            SiteStatus status = goAllPages(item.getKey(), item.getValue(), forkJoinPool);
-            clearDataBase(item.getValue());
-            setCurrentStatus(item.getKey(), item.getValue(), status, null);
+            SiteStatus status = goAllPages(site, forkJoinPool);
+            site.setStatus(status);
             logger.info("The cached pages are being written to the database | size " + cashPages.size());
             writeCachePagesToBD();
         }
@@ -99,14 +98,13 @@ public class IndexingServiceImpl implements IndexingService {
 
     @Transactional
     @Override
-    public SiteStatus goAllPages(String source_root, String name, ForkJoinPool forkJoinPool) {
-        logger.info("SetCurrentStatus: SiteStatus.INDEXING" + name);
-        SiteModel site = siteModelRepository.findByName(name).stream().findFirst().orElse(null);
+    public SiteStatus goAllPages(SiteModel site, ForkJoinPool forkJoinPool) {
+        logger.info("SetCurrentStatus: SiteStatus.INDEXING" + site.getUrl());
 
         try {
-            PageNode root = new PageNode(source_root);
+            PageNode root = new PageNode(site.getUrl());
             forkJoinPool.invoke(new MappingSiteRecursiveCycle(pageModelRepository, root, site));
-            logger.info("SetCurrentStatus: SiteStatus.INDEXED" + name);
+            logger.info("SetCurrentStatus: SiteStatus.INDEXED" + site.getUrl());
             return SiteStatus.INDEXED;
         } catch (Exception ex) {
             logger.info("public void goAllPages Error" + ex);
@@ -115,14 +113,16 @@ public class IndexingServiceImpl implements IndexingService {
     }
 
 
-    private void setCurrentStatus(String source_root, String name, SiteStatus status, String error) {
+    private SiteModel setIndexingStatus(String source_root, String name, String error) {
         SiteModel row = new SiteModel();
         row.setName(name);
-        row.setStatus(status);
+        row.setStatus(SiteStatus.INDEXING);
         row.setStatus_time(LocalDateTime.now());
         row.setUrl(source_root);
         row.setLast_error(error);
         siteModelRepository.save(row);
+        SiteModel site = siteModelRepository.findByName(name).stream().findFirst().orElse(null);
+        return site;
     }
 
     @Override
