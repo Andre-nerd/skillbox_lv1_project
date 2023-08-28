@@ -34,6 +34,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ForkJoinPool;
 
 import static searchengine.controllers.ApiController.isIndexingInProgress;
+import static searchengine.controllers.ResponseCode.ERROR_WHILE_CRAWLING;
 
 @Service
 @RequiredArgsConstructor
@@ -51,6 +52,7 @@ public class IndexingServiceImpl implements IndexingService {
     private final SitesList sites;
     private List<ForkJoinPool> forkList = new ArrayList<>();
     private List<Thread> threads = new ArrayList<>();
+    private HashMap<SiteModel, SiteStatus> siteStatuses = new HashMap<>();
 
     public static HashMap<String, CopyOnWriteArrayList<PageModel>> cashPagesMap = new HashMap<>();
     public static HashMap<String, CopyOnWriteArrayList<String>> cashPathMap = new HashMap<>();
@@ -76,10 +78,10 @@ public class IndexingServiceImpl implements IndexingService {
             siteModelRepository.save(site);
             Thread thread = new Thread(()-> {
                 SiteStatus status = goAllPages(site);
+                siteStatuses.put(site,status);
             }
             );
             threads.add(thread);
-//            site.setStatus(status);
         }
 
         for (Thread t: threads){
@@ -94,6 +96,9 @@ public class IndexingServiceImpl implements IndexingService {
             }
         }
         writeCachePagesToBD(cashPagesMap);
+        for (Map.Entry<SiteModel, SiteStatus>item : siteStatuses.entrySet()){
+            setStatus(item.getKey(),item.getValue());
+        }
         isIndexingInProgress = false;
         logger.info(ServicesMessage.INDEXING_FINISHED);
     }
@@ -113,7 +118,6 @@ public class IndexingServiceImpl implements IndexingService {
             logger.info("Write Cache Pages To BD() size" + item.getValue().size());
             try {
                 pageModelRepository.saveAll(item.getValue());
-//            cashPages.forEach(pageModelRepository::save);
             } catch (Exception ex) {
                 logger.info("Error >> writeCachePagesToBD()" + ex);
             }
@@ -143,15 +147,17 @@ public class IndexingServiceImpl implements IndexingService {
     }
 
 
-    private SiteModel setIndexingStatus(String source_root, String name, String error) {
-        SiteModel row = new SiteModel();
-        row.setName(name);
-        row.setStatus(SiteStatus.INDEXING);
-        row.setStatus_time(LocalDateTime.now());
-        row.setUrl(source_root);
-        row.setLast_error(error);
-        siteModelRepository.save(row);
-        SiteModel site = siteModelRepository.findByName(name).stream().findFirst().orElse(null);
-        return site;
+    @Transactional
+    private void setStatus(SiteModel site, SiteStatus status) {
+        try {
+            SiteModel findSite = siteModelRepository.findByName(site.getName()).stream().findFirst().orElse(null);
+            findSite.setStatus(status);
+            findSite.setStatus_time(LocalDateTime.now());
+            if (status.equals(SiteStatus.FAILED)) {
+                findSite.setLast_error(ERROR_WHILE_CRAWLING);
+            }
+        }catch (Exception ex){
+            logger.info("private void setStatus Error" + ex);
+        }
     }
 }

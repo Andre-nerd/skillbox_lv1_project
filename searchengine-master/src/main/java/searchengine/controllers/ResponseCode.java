@@ -5,4 +5,5 @@ public class ResponseCode {
     public static final int ACCEPTED = 202;
 
     public static final String INDEXING_ALREADY_STARTED ="Индексация уже запущена";
+    public static final String  ERROR_WHILE_CRAWLING ="Error while crawling site pages";
 }
