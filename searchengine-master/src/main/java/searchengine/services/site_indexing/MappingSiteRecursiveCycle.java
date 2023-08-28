@@ -27,8 +27,6 @@ import static searchengine.services.ServicesMessage.URL_PARSING_ERROR;
 
 public class MappingSiteRecursiveCycle extends RecursiveAction {
 
-    //    private final SiteModelRepository siteModelRepository;
-    private final PageModelRepository pageModelRepository;
     private PageNode node;
     private static final int TIME_OUT = 10000;
     private static final int SLEEP_TIME = 500;
@@ -45,8 +43,8 @@ public class MappingSiteRecursiveCycle extends RecursiveAction {
     private final SiteModel site;
 
     @Autowired
-    public MappingSiteRecursiveCycle(PageModelRepository pageModelRepository, PageNode node, SiteModel site) {
-        this.pageModelRepository = pageModelRepository;
+    public MappingSiteRecursiveCycle(PageNode node, SiteModel site) {
+
         this.node = node;
         this.site = site;
         patternRoot = Pattern.compile("^" + this.node.getUrl());
@@ -71,8 +69,6 @@ public class MappingSiteRecursiveCycle extends RecursiveAction {
             Elements elements = page.select("body").select("a");
             for (Element a : elements) {
                 String childUrl = a.absUrl("abs:href");
-//                Optional<PageModel> sameUrl = pageModelRepository.findByPath(childUrl).stream().findAny();
-//                if (sameUrl.isPresent()) continue;
 
                 System.out.println(childUrl);
                 createNewRow(childUrl, site);
@@ -87,7 +83,7 @@ public class MappingSiteRecursiveCycle extends RecursiveAction {
         }
 
         for (PageNode child : node.getChildren()) {
-            MappingSiteRecursiveCycle task = new MappingSiteRecursiveCycle(pageModelRepository, child, site);
+            MappingSiteRecursiveCycle task = new MappingSiteRecursiveCycle(child, site);
             task.compute();
         }
 

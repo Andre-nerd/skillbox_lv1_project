@@ -1,6 +1,8 @@
 package searchengine.services;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
@@ -34,9 +36,11 @@ import static searchengine.controllers.ApiController.isIndexingInProgress;
 
 @Service
 @RequiredArgsConstructor
+@Getter
+@Setter
 public class IndexingServiceImpl implements IndexingService {
     @Value("${user-agent}")
-    public static String userAgentName;
+    public static String userAgentName = "Ya bot/12.01";
 
     private final SiteModelRepository siteModelRepository;
     private final PageModelRepository pageModelRepository;
@@ -55,46 +59,32 @@ public class IndexingServiceImpl implements IndexingService {
     public void startIndexing() {
         isIndexingInProgress = true;
         logger.info(ServicesMessage.INDEXING_IN_PROGRESS);
+        logger.info("User-agent: " + userAgentName);
         List<Site> sitesLists = sites.getSites();
 
-        for(Site item : sitesLists) {
-            startMappingSite(item);
+        for (Site item : sitesLists) {
+            clearDataBase(item.getName());
+            SiteModel site = new SiteModel();
+            site.setUrl(item.getUrl());
+            site.setName(item.getName());
+            site.setStatus(SiteStatus.INDEXING);
+            site.setStatus_time(LocalDateTime.now());
+            site.setLast_error("");
+            siteModelRepository.save(site);
+            SiteStatus status = goAllPages(site);
+            site.setStatus(status);
+            logger.info("The cached pages are being written to the database | size " + cashPagesMap.get(site.getUrl()).size());
+            writeCachePagesToBD(cashPagesMap.get(site.getUrl()));
         }
         isIndexingInProgress = false;
         logger.info(ServicesMessage.INDEXING_FINISHED);
-    }
-
-    private void startMappingSite(Site siteItem) {
-        logger.info("Site name: " + siteItem.getName() );
-        logger.info("Site url: " + siteItem.getUrl() );
-        CopyOnWriteArrayList<PageModel> cashPages = new CopyOnWriteArrayList<>();
-        CopyOnWriteArrayList<String> cashPath = new CopyOnWriteArrayList<>();
-        cashPagesMap.put(siteItem.getUrl(), cashPages);
-        cashPathMap.put(siteItem.getUrl(), cashPath);
-
-        clearDataBase(siteItem.getName());
-        SiteModel site = setIndexingStatus(siteItem.getUrl(), siteItem.getName(), null);
-
-        ForkJoinPool forkJoinPool = new ForkJoinPool();
-        forkList.add(forkJoinPool);
-        SiteStatus status = goAllPages(site, forkJoinPool);
-
-        site.setStatus(status);
-        logger.info("The cached pages are being written to the database | size " + cashPages.size());
-
-
-        /** Именно в новом потоке никак не хочет писать в таблицу Page. Предполагаю, потому что
-         * она зависит от таблицы Site.
-         * Но как решить?
-         */
-        writeCachePagesToBD(cashPages);
     }
 
     @Transactional
     public void clearDataBase(String name) {
         List<SiteModel> siteModelList = siteModelRepository.findByName(name);
         siteModelList.forEach(s -> {
-            logger.info("Find in BD :" + s.getId() +" | " + s.getName() + " | deleting");
+            logger.info("Find in BD :" + s.getId() + " | " + s.getName() + " | deleting");
             siteModelRepository.delete(s);
         });
     }
@@ -110,12 +100,19 @@ public class IndexingServiceImpl implements IndexingService {
     }
 
 
-    public SiteStatus goAllPages(SiteModel site, ForkJoinPool forkJoinPool) {
+    public SiteStatus goAllPages(SiteModel site) {
         logger.info("SetCurrentStatus: SiteStatus.INDEXING" + site.getUrl());
+        CopyOnWriteArrayList<PageModel> cashPages = new CopyOnWriteArrayList<>();
+        CopyOnWriteArrayList<String> cashPath = new CopyOnWriteArrayList<>();
+        cashPagesMap.put(site.getUrl(), cashPages);
+        cashPathMap.put(site.getUrl(), cashPath);
+
+        ForkJoinPool forkJoinPool = new ForkJoinPool();
+        forkList.add(forkJoinPool);
 
         try {
             PageNode root = new PageNode(site.getUrl());
-            forkJoinPool.invoke(new MappingSiteRecursiveCycle(pageModelRepository, root, site));
+            forkJoinPool.invoke(new MappingSiteRecursiveCycle(root, site));
             logger.info("SetCurrentStatus: SiteStatus.INDEXED" + site.getUrl());
             return SiteStatus.INDEXED;
         } catch (Exception ex) {
