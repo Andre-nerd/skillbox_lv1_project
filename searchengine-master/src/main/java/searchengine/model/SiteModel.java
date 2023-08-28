@@ -39,4 +39,7 @@ public class SiteModel {
 
     @OneToMany(mappedBy = "owner")
     private List<PageModel> pages;
+
+    @OneToMany(mappedBy = "owner")
+    private List<Lemma> lemmas;
 }
