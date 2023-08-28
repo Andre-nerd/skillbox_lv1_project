@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.core.env.Environment;
 import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Service;
@@ -39,7 +40,8 @@ import static searchengine.controllers.ApiController.isIndexingInProgress;
 @Getter
 @Setter
 public class IndexingServiceImpl implements IndexingService {
-    @Value("${user-agent}")
+
+    @Value("${user-agent.name}")
     public static String userAgentName = "Ya bot/12.01";
 
     private final SiteModelRepository siteModelRepository;
@@ -48,6 +50,7 @@ public class IndexingServiceImpl implements IndexingService {
 
     private final SitesList sites;
     private List<ForkJoinPool> forkList = new ArrayList<>();
+    private List<Thread> threads = new ArrayList<>();
 
     public static HashMap<String, CopyOnWriteArrayList<PageModel>> cashPagesMap = new HashMap<>();
     public static HashMap<String, CopyOnWriteArrayList<String>> cashPathMap = new HashMap<>();
@@ -71,11 +74,26 @@ public class IndexingServiceImpl implements IndexingService {
             site.setStatus_time(LocalDateTime.now());
             site.setLast_error("");
             siteModelRepository.save(site);
-            SiteStatus status = goAllPages(site);
-            site.setStatus(status);
-            logger.info("The cached pages are being written to the database | size " + cashPagesMap.get(site.getUrl()).size());
-            writeCachePagesToBD(cashPagesMap.get(site.getUrl()));
+            Thread thread = new Thread(()-> {
+                SiteStatus status = goAllPages(site);
+            }
+            );
+            threads.add(thread);
+//            site.setStatus(status);
         }
+
+        for (Thread t: threads){
+            t.start();
+        }
+        for(Thread t: threads) {
+            try {
+                t.join();
+                logger.info("Thread : " + t + " join() successful");
+            } catch (InterruptedException e) {
+                logger.info("Exception when run thread " + t + " | " + e.getMessage());
+            }
+        }
+        writeCachePagesToBD(cashPagesMap);
         isIndexingInProgress = false;
         logger.info(ServicesMessage.INDEXING_FINISHED);
     }
@@ -90,12 +108,15 @@ public class IndexingServiceImpl implements IndexingService {
     }
 
     @Transactional
-    private void writeCachePagesToBD(CopyOnWriteArrayList<PageModel> cashPages) {
-        try {
-            pageModelRepository.saveAll(cashPages);
+    private void writeCachePagesToBD(HashMap<String, CopyOnWriteArrayList<PageModel>> cashPagesMap) {
+        for (Map.Entry<String, CopyOnWriteArrayList<PageModel>> item : cashPagesMap.entrySet()) {
+            logger.info("Write Cache Pages To BD() size" + item.getValue().size());
+            try {
+                pageModelRepository.saveAll(item.getValue());
 //            cashPages.forEach(pageModelRepository::save);
-        } catch (Exception ex) {
-            logger.info("Error >> writeCachePagesToBD()" + ex);
+            } catch (Exception ex) {
+                logger.info("Error >> writeCachePagesToBD()" + ex);
+            }
         }
     }
 
