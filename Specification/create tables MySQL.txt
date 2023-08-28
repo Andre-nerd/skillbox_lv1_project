@@ -10,3 +10,20 @@ FOREIGN KEY (site_id) REFERENCES site (id) ON DELETE CASCADE
 insert into page (site_id,`path`,`code`,content) VALUES (10,'bbbbb',700,'bbbbb');
 
 SET SQL_SAFE_UPDATES = 0;
+
+CREATE TABLE lemma(
+id INT PRIMARY KEY  NOT NULL AUTO_INCREMENT,
+site_id INT NOT NULL,
+lemma VARCHAR(255) NOT NULL,
+frequency INT NOT NULL,
+FOREIGN KEY (site_id) REFERENCES site (id) ON DELETE CASCADE
+);
+
+CREATE TABLE `index` (
+id INT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+page_id INT NOT NULL,
+lemma_id INT NOT NULL,
+`rank` FLOAT NOT NULL,
+FOREIGN KEY (page_id) REFERENCES `page` (id) ON DELETE CASCADE,
+FOREIGN KEY (lemma_id) REFERENCES lemma (id) ON DELETE CASCADE
+);

@@ -6,4 +6,6 @@ public class ResponseCode {
 
     public static final String INDEXING_ALREADY_STARTED ="Индексация уже запущена";
     public static final String  ERROR_WHILE_CRAWLING ="Error while crawling site pages";
+
+    public static final String INDEXING_NOT_LAUNCH = "Индексация не запущена";
 }

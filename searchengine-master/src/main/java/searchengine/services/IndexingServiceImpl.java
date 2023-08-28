@@ -64,7 +64,6 @@ public class IndexingServiceImpl implements IndexingService {
     public void startIndexing() {
         isIndexingInProgress = true;
         logger.info(ServicesMessage.INDEXING_IN_PROGRESS);
-        logger.info("User-agent: " + userAgentName);
         List<Site> sitesLists = sites.getSites();
 
         for (Site item : sitesLists) {
@@ -102,6 +101,16 @@ public class IndexingServiceImpl implements IndexingService {
         isIndexingInProgress = false;
         logger.info(ServicesMessage.INDEXING_FINISHED);
     }
+
+    @Override
+    public void stopIndexing(){
+        isIndexingInProgress = false;
+        forkList.forEach(ForkJoinPool::shutdownNow);
+        threads.forEach(Thread::interrupt);
+        forkList = new ArrayList<>();
+        threads = new ArrayList<>();
+    }
+
 
     @Transactional
     public void clearDataBase(String name) {

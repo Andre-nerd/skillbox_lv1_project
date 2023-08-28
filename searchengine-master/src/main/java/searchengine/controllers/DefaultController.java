@@ -41,40 +41,6 @@ public class DefaultController {
      */
     @RequestMapping("/")
     public String index() {
-        logger.info("Logger report about index()");
-//        testSiteSQL("https://lenta", "Lemnta");
-
-//
-//        try {
-//            new Thread(() -> {
-
-
-//                }
-//                ).start();
-//        } catch (Exception ex) {
-//            logger.info("Error >> " + ex);
-//        }
-
-
-//        if (siteModel != null) {
-//            List<PageModel> pageModelList = siteModel.getPages();
-//            pageModelList.forEach(System.out::println);
-//        } else {
-//            System.out.println(siteModel + "= null");
-//        }
-
-//        SiteModel site = testSiteSQL();
-//        testPageSQL(site);
-//        try {
-//            List<SiteModel> siteModel = siteModelRepository.findAll().stream().toList();
-//            System.out.println(siteModel.size());
-//            testPageSQL(siteModel.get(0));
-//        }catch (Exception ex){
-//            System.out.println(ex);
-//        }
-
-//       Optional siteModel = siteModelRepository.findById(1);
-//        System.out.println(siteModel.size());
         return "index";
     }
 

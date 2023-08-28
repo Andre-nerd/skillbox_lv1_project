@@ -7,4 +7,5 @@ import java.util.concurrent.ForkJoinPool;
 
 public interface IndexingService {
     void startIndexing();
+    void stopIndexing();
 }

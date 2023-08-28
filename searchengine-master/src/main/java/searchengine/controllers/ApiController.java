@@ -48,7 +48,26 @@ public class ApiController {
             logger.info("Error >> indexingService.startIndexing(): " + ex);
         }
         ResponseEntity responseEntity = ResponseEntity.ok(response);
-        logger.info("ApiController | response " + responseEntity);
+        logger.info("ApiController/startIndexing | response " + responseEntity);
+        return responseEntity;
+    }
+    @GetMapping("/stopIndexing")
+    public ResponseEntity<IndexingResponse> stopIndexing(){
+        IndexingResponse response = new IndexingResponse();
+        if (!isIndexingInProgress){
+            response.setResult(false);
+            response.setError(INDEXING_NOT_LAUNCH);
+            return ResponseEntity.ok(response);
+        }
+        try{
+            indexingService.stopIndexing();
+            response.setResult(true);
+        } catch(Exception ex){
+            response.setResult(false);
+            response.setError(ex.getMessage());
+        }
+        ResponseEntity<IndexingResponse> responseEntity = ResponseEntity.ok(response);
+        logger.info("ApiController/stopIndexing | response " + responseEntity);
         return responseEntity;
     }
 }
