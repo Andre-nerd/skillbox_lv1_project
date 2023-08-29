@@ -41,7 +41,6 @@ public class DefaultController {
      */
     @RequestMapping("/")
     public String index() {
-        writeToBD.testIndex();
         return "index";
     }
 }

@@ -3,11 +3,10 @@ package searchengine.controllers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import searchengine.dto.statistics.IndexingResponse;
 import searchengine.dto.statistics.StatisticsResponse;
+import searchengine.model.SiteModel;
 import searchengine.services.IndexingService;
 import searchengine.services.StatisticsService;
 
@@ -68,6 +67,14 @@ public class ApiController {
         }
         ResponseEntity<IndexingResponse> responseEntity = ResponseEntity.ok(response);
         logger.info("ApiController/stopIndexing | response " + responseEntity);
+        return responseEntity;
+    }
+    @PostMapping("/indexPage")
+    public ResponseEntity<IndexingResponse> indexPage(@RequestParam("url") String url){
+        logger.info("ApiController/indexPage | indexing page " + url);
+        IndexingResponse response = new IndexingResponse();
+        indexingService.indexOnePage(url, new SiteModel());
+        ResponseEntity<IndexingResponse> responseEntity = ResponseEntity.ok(response);
         return responseEntity;
     }
 }

@@ -28,8 +28,8 @@ import static searchengine.services.ServicesMessage.URL_PARSING_ERROR;
 public class MappingSiteRecursiveCycle extends RecursiveAction {
 
     private PageNode node;
-    private static final int TIME_OUT = 10000;
-    private static final int SLEEP_TIME = 500;
+    public static final int TIME_OUT = 10000;
+    public static final int SLEEP_TIME = 500;
     private static final Pattern patternNotFile = Pattern.compile("([^\\s]+(\\.(?i)(jpg|png|gif|bmp|pdf))$)");
     private static final Pattern patternNotAnchor = Pattern.compile("#([\\w\\-]+)?$");
     private final Pattern patternRoot;
@@ -111,10 +111,6 @@ public class MappingSiteRecursiveCycle extends RecursiveAction {
             page.setCode(connection.response().statusCode());
             page.setContent(doc.html());
             logger.info("PageModel createNewRow | code: " + page.getCode() + " | owner: " + page.getOwner());
-
-            /** Упорно не хочет делать запись в БД */
-//            pageModelRepository.save(page);
-            /** Пока добавляю в кеш, а после окончания обхода страниц - пишу в БД */
             cashPath.add(path);
             cashPages.add(page);
 

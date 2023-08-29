@@ -6,6 +6,9 @@ import lombok.Setter;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
+import org.jsoup.Connection;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +27,7 @@ import searchengine.repositories.PageModelRepository;
 import searchengine.repositories.SiteModelRepository;
 import searchengine.services.site_indexing.MappingSiteRecursiveCycle;
 import searchengine.services.site_indexing.PageNode;
+import searchengine.services.site_indexing.TextParsing;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -35,6 +39,7 @@ import java.util.concurrent.ForkJoinPool;
 
 import static searchengine.controllers.ApiController.isIndexingInProgress;
 import static searchengine.controllers.ResponseCode.ERROR_WHILE_CRAWLING;
+import static searchengine.services.site_indexing.MappingSiteRecursiveCycle.TIME_OUT;
 
 @Service
 @RequiredArgsConstructor
@@ -167,6 +172,25 @@ public class IndexingServiceImpl implements IndexingService {
             }
         }catch (Exception ex){
             logger.info("private void setStatus Error" + ex);
+        }
+    }
+
+    public void indexOnePage(String path, SiteModel site){
+        try {
+            PageModel page = new PageModel();
+            page.setPath(path);
+            page.setOwner(site);
+            Connection connection = Jsoup.connect(path)
+                    .userAgent(userAgentName)
+                    .timeout(TIME_OUT);
+            Document doc = connection.get();
+            page.setCode(connection.response().statusCode());
+            page.setContent(doc.html());
+            TextParsing parser = new TextParsing();
+            HashMap<String,Integer> map = parser.parsingOnePageText(doc.html());
+            System.out.println(map);
+        } catch (Exception ex){
+            logger.info("Error > IndexingService fun indexOnePage");
         }
     }
 }
