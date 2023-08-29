@@ -55,7 +55,7 @@ public class IndexingServiceImpl implements IndexingService {
     private final PageModelRepository pageModelRepository;
     private final Environment environment;
 
-    private final SitesList sites;
+    public final SitesList sites;
     private List<ForkJoinPool> forkList = new ArrayList<>();
     private List<Thread> threads = new ArrayList<>();
     private HashMap<SiteModel, SiteStatus> siteStatuses = new HashMap<>();
@@ -188,6 +188,7 @@ public class IndexingServiceImpl implements IndexingService {
             Document doc = connection.get();
             page.setCode(connection.response().statusCode());
             page.setContent(doc.html());
+            pageModelRepository.save(page);
             TextParsing parser = new TextParsing();
             HashMap<String, Integer> map = parser.parsingOnePageText(doc.html());
             System.out.println(map);
@@ -197,17 +198,48 @@ public class IndexingServiceImpl implements IndexingService {
     }
 
     @Override
-    public boolean propertiesContainsHost(String host) {
-        List<String> siteProperties = sites.getSites().stream().map(Site::getUrl).map(
-                name -> {
-                    try {
-                        return new java.net.URI(name).getHost();
-                    } catch (URISyntaxException e) {
-                        return null;
-                    }
+    public SiteModel propertiesContainsHost(String host) {
+//        List<String> siteProperties = sites.getSites().stream().map(Site::getUrl).map(
+//                name -> {
+//                    try {
+//                        return new java.net.URI(name).getHost();
+//                    } catch (URISyntaxException e) {
+//                        return null;
+//                    }
+//                }
+//        ).toList();
+        logger.info("find host: " + host);
+        Site siteInProperties = getSiteFromProperties(host);
+        logger.info("Sites in properties: " + siteInProperties);
+        SiteModel site = null;
+        if (siteInProperties != null) {
+            site = siteModelRepository.findByName(siteInProperties.getName()).stream().findAny().orElse(null);
+            logger.info("Find: " + site + " in BD");
+            if (site == null){
+                site = new SiteModel();
+                site.setUrl(siteInProperties.getUrl());
+                site.setName(siteInProperties.getName());
+                site.setStatus_time(LocalDateTime.now());
+                site.setStatus(SiteStatus.INDEXED);
+                siteModelRepository.save(site);
+            }
+        }
+        return (site);
+    }
+
+    private Site getSiteFromProperties(String host){
+        List<Site> siteList = sites.getSites();
+        Site findSite = null;
+        for (Site item: siteList){
+            try {
+                String siteName = new java.net.URI(item.getUrl()).getHost();
+                if (siteName.equals(host)){
+                    findSite = item;
                 }
-        ).toList();
-        logger.info("Sites in properties: " + siteProperties);
-        return (siteProperties.contains(host));
+            } catch (URISyntaxException e) {
+                logger.info("Error > IndexingServiceImpl | getSiteFromProperties");
+            }
+        }
+        return findSite;
     }
 }

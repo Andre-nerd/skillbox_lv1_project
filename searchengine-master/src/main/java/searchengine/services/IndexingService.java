@@ -1,5 +1,6 @@
 package searchengine.services;
 
+import org.springframework.data.util.Pair;
 import searchengine.model.SiteModel;
 import searchengine.model.SiteStatus;
 
@@ -9,5 +10,5 @@ public interface IndexingService {
     void startIndexing();
     void stopIndexing();
     void indexOnePage(String path, SiteModel site);
-    boolean propertiesContainsHost(String host);
+    SiteModel propertiesContainsHost(String host);
 }

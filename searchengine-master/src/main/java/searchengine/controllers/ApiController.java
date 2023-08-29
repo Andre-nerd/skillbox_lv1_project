@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import searchengine.config.Site;
 import searchengine.dto.statistics.IndexingResponse;
 import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.model.SiteModel;
@@ -78,9 +79,10 @@ public class ApiController {
         try {
             String host = new java.net.URI(url).getHost();
             logger.info("ApiController/indexPage | indexing page " + url + " HOST: " + host);
-            if (indexingService.propertiesContainsHost(host)) {
+            SiteModel site = indexingService.propertiesContainsHost(host);
+            if (site != null) {
                 logger.info("ApiController/indexPage | site included in properties ");
-                indexingService.indexOnePage(url, new SiteModel());
+                indexingService.indexOnePage(url, site);
                 response.setResult(true);
             } else {
                 logger.info(URL_INVALIDATE);
