@@ -135,6 +135,12 @@ public class IndexingServiceImpl implements IndexingService {
             logger.info("Write Cache Pages To BD() size" + item.getValue().size());
             try {
                 pageModelRepository.saveAll(item.getValue());
+                // Пока закрыл, потому что парсинг страниц идет долго
+                // Работу функционала парсинга можно проверить на индексации отдельной ссылки
+                //https://www.playback.ru/payment.html
+                //https://www.playback.ru/dostavka.html
+               // item.getValue().forEach(this::parsingPage);
+
             } catch (Exception ex) {
                 logger.info("Error >> writeCachePagesToBD()" + ex);
             }
@@ -191,18 +197,18 @@ public class IndexingServiceImpl implements IndexingService {
             page.setCode(connection.response().statusCode());
             page.setContent(doc.html());
             pageModelRepository.save(page);
-            parsingPage(site,page,doc.html());
+            parsingPage(page);
         } catch (Exception ex) {
             logger.info("Error > IndexingService fun indexOnePage");
         }
     }
 
-    private void parsingPage(SiteModel site, PageModel page, String htmlDoc){
+    private void parsingPage(PageModel page){
         TextParsing parser = new TextParsing();
-        HashMap<String, Integer> map = parser.parsingOnePageText(htmlDoc);
+        HashMap<String, Integer> map = parser.parsingOnePageText(page.getContent());
         System.out.println(map);
         for (Map.Entry<String, Integer> item : map.entrySet()){
-            Lemma lemma = saveLemmaToBD(site, item.getKey());
+            Lemma lemma = saveLemmaToBD(page.getOwner(), item.getKey());
             saveIndexToBD(page,lemma, item.getValue());
         }
     }
