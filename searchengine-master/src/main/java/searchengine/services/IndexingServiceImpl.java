@@ -29,6 +29,7 @@ import searchengine.services.site_indexing.MappingSiteRecursiveCycle;
 import searchengine.services.site_indexing.PageNode;
 import searchengine.services.site_indexing.TextParsing;
 
+import java.net.URISyntaxException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -80,18 +81,18 @@ public class IndexingServiceImpl implements IndexingService {
             site.setStatus_time(LocalDateTime.now());
             site.setLast_error("");
             siteModelRepository.save(site);
-            Thread thread = new Thread(()-> {
+            Thread thread = new Thread(() -> {
                 SiteStatus status = goAllPages(site);
-                siteStatuses.put(site,status);
+                siteStatuses.put(site, status);
             }
             );
             threads.add(thread);
         }
 
-        for (Thread t: threads){
+        for (Thread t : threads) {
             t.start();
         }
-        for(Thread t: threads) {
+        for (Thread t : threads) {
             try {
                 t.join();
                 logger.info("Thread : " + t + " join() successful");
@@ -100,15 +101,15 @@ public class IndexingServiceImpl implements IndexingService {
             }
         }
         writeCachePagesToBD(cashPagesMap);
-        for (Map.Entry<SiteModel, SiteStatus>item : siteStatuses.entrySet()){
-            setStatus(item.getKey(),item.getValue());
+        for (Map.Entry<SiteModel, SiteStatus> item : siteStatuses.entrySet()) {
+            setStatus(item.getKey(), item.getValue());
         }
         isIndexingInProgress = false;
         logger.info(ServicesMessage.INDEXING_FINISHED);
     }
 
     @Override
-    public void stopIndexing(){
+    public void stopIndexing() {
         isIndexingInProgress = false;
         forkList.forEach(ForkJoinPool::shutdownNow);
         threads.forEach(Thread::interrupt);
@@ -170,12 +171,13 @@ public class IndexingServiceImpl implements IndexingService {
             if (status.equals(SiteStatus.FAILED)) {
                 findSite.setLast_error(ERROR_WHILE_CRAWLING);
             }
-        }catch (Exception ex){
+        } catch (Exception ex) {
             logger.info("private void setStatus Error" + ex);
         }
     }
 
-    public void indexOnePage(String path, SiteModel site){
+    @Override
+    public void indexOnePage(String path, SiteModel site) {
         try {
             PageModel page = new PageModel();
             page.setPath(path);
@@ -187,10 +189,25 @@ public class IndexingServiceImpl implements IndexingService {
             page.setCode(connection.response().statusCode());
             page.setContent(doc.html());
             TextParsing parser = new TextParsing();
-            HashMap<String,Integer> map = parser.parsingOnePageText(doc.html());
+            HashMap<String, Integer> map = parser.parsingOnePageText(doc.html());
             System.out.println(map);
-        } catch (Exception ex){
+        } catch (Exception ex) {
             logger.info("Error > IndexingService fun indexOnePage");
         }
+    }
+
+    @Override
+    public boolean propertiesContainsHost(String host) {
+        List<String> siteProperties = sites.getSites().stream().map(Site::getUrl).map(
+                name -> {
+                    try {
+                        return new java.net.URI(name).getHost();
+                    } catch (URISyntaxException e) {
+                        return null;
+                    }
+                }
+        ).toList();
+        logger.info("Sites in properties: " + siteProperties);
+        return (siteProperties.contains(host));
     }
 }

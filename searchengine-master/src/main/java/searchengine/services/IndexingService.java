@@ -9,4 +9,5 @@ public interface IndexingService {
     void startIndexing();
     void stopIndexing();
     void indexOnePage(String path, SiteModel site);
+    boolean propertiesContainsHost(String host);
 }
