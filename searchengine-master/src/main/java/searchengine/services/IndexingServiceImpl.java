@@ -20,9 +20,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import searchengine.config.Site;
 import searchengine.config.SitesList;
-import searchengine.model.PageModel;
-import searchengine.model.SiteModel;
-import searchengine.model.SiteStatus;
+import searchengine.model.*;
+import searchengine.repositories.IndexRepository;
+import searchengine.repositories.LemmaRepository;
 import searchengine.repositories.PageModelRepository;
 import searchengine.repositories.SiteModelRepository;
 import searchengine.services.site_indexing.MappingSiteRecursiveCycle;
@@ -53,6 +53,8 @@ public class IndexingServiceImpl implements IndexingService {
 
     private final SiteModelRepository siteModelRepository;
     private final PageModelRepository pageModelRepository;
+    private final LemmaRepository lemmaRepository;
+    private final IndexRepository indexRepository;
     private final Environment environment;
 
     public final SitesList sites;
@@ -189,25 +191,45 @@ public class IndexingServiceImpl implements IndexingService {
             page.setCode(connection.response().statusCode());
             page.setContent(doc.html());
             pageModelRepository.save(page);
-            TextParsing parser = new TextParsing();
-            HashMap<String, Integer> map = parser.parsingOnePageText(doc.html());
-            System.out.println(map);
+            parsingPage(site,page,doc.html());
         } catch (Exception ex) {
             logger.info("Error > IndexingService fun indexOnePage");
         }
     }
 
+    private void parsingPage(SiteModel site, PageModel page, String htmlDoc){
+        TextParsing parser = new TextParsing();
+        HashMap<String, Integer> map = parser.parsingOnePageText(htmlDoc);
+        System.out.println(map);
+        for (Map.Entry<String, Integer> item : map.entrySet()){
+            Lemma lemma = saveLemmaToBD(site, item.getKey());
+            saveIndexToBD(page,lemma, item.getValue());
+        }
+    }
+    private Lemma saveLemmaToBD(SiteModel site,String lemmaWord){
+        Lemma lemma = lemmaRepository.findByLemma(lemmaWord).stream().findAny().orElse(null);
+        if(lemma == null){
+            lemma = new Lemma();
+            lemma.setLemma(lemmaWord);
+            lemma.setFrequency(1);
+            lemma.setOwner(site);
+            lemmaRepository.save(lemma);
+        } else {
+            lemma.setFrequency(lemma.getFrequency() + 1);
+        }
+        return lemma;
+    }
+
+    private void saveIndexToBD(PageModel page,Lemma lemma, int rank){
+        IndexModel indexModel = new IndexModel();
+        indexModel.setOwnerPage(page);
+        indexModel.setOwnerLemma(lemma);
+        indexModel.setRank(rank);
+        indexRepository.save(indexModel);
+    }
+
     @Override
     public SiteModel propertiesContainsHost(String host) {
-//        List<String> siteProperties = sites.getSites().stream().map(Site::getUrl).map(
-//                name -> {
-//                    try {
-//                        return new java.net.URI(name).getHost();
-//                    } catch (URISyntaxException e) {
-//                        return null;
-//                    }
-//                }
-//        ).toList();
         logger.info("find host: " + host);
         Site siteInProperties = getSiteFromProperties(host);
         logger.info("Sites in properties: " + siteInProperties);

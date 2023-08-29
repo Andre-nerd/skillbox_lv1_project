@@ -1,6 +1,7 @@
 package searchengine.services;
 
 import org.springframework.data.util.Pair;
+import searchengine.model.PageModel;
 import searchengine.model.SiteModel;
 import searchengine.model.SiteStatus;
 
