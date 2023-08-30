@@ -57,20 +57,20 @@ public class TextParsing {
         return map;
     }
 
-    private List<String> splitTextIntoWords(String text) {
+    public static List<String> splitTextIntoWords(String text) {
         String res = text.replaceAll("-", " ")
                 .replaceAll("\\p{Punct}|[0-9]|[A-Za-zÀ-ÿ]", "")
                 .replaceAll("  ", " ")
                 .replaceAll(" ", "\n")
                 .toLowerCase();
-        return Arrays.asList(res.split("\n")).stream().filter(this::isEmptyWord).toList();
+        return Arrays.asList(res.split("\n")).stream().filter(TextParsing::isEmptyWord).toList();
     }
 
-    private boolean isEmptyWord(String word){
+    private static boolean isEmptyWord(String word){
         return !(word.isEmpty() || word.equals(" ") || word.equals("  "));
     }
 
-    private static boolean isNotServicePart(String word) {
+    public static boolean isNotServicePart(String word) {
         try {
             LuceneMorphology luceneMorph = new RussianLuceneMorphology();
             List<String> wordBaseForms = luceneMorph.getMorphInfo(word);
@@ -85,7 +85,7 @@ public class TextParsing {
     }
 
 
-    private String normFormsWord(String word) {
+    public static String normFormsWord(String word) {
         List<String> wordBaseForms = new ArrayList<>();
         try {
             LuceneMorphology luceneMorph = new RussianLuceneMorphology();

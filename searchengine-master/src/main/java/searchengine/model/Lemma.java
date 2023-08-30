@@ -11,7 +11,7 @@ import java.util.List;
 @Table(name = "lemma")
 @Getter
 @Setter
-public class Lemma {
+public class Lemma implements Comparable{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
@@ -29,6 +29,12 @@ public class Lemma {
 
     @OneToMany(mappedBy = "ownerLemma")
     private List<IndexModel> indexModels;
+
+    @Override
+    public int compareTo(Object o) {
+        Lemma o1 = (Lemma) o;
+        return this.getFrequency() - o1.getFrequency();
+    }
 }
 
 /** CREATE TABLE lemma(
