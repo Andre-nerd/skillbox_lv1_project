@@ -1,32 +1,35 @@
 package searchengine.controllers;
 
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import searchengine.config.Site;
-import searchengine.dto.statistics.IndexingResponse;
+import searchengine.dto.indexing.IndexingResponse;
+import searchengine.dto.search.SearchResponse;
+import searchengine.dto.search.SiteSearchData;
 import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.model.SiteModel;
 import searchengine.services.IndexingService;
+import searchengine.services.SearchService;
 import searchengine.services.StatisticsService;
 
 import javax.servlet.http.HttpServletRequest;
 
-import static searchengine.controllers.ResponseCode.*;
+import java.util.Arrays;
+
+import static searchengine.controllers.Utils.ResponseCode.*;
 
 @RestController
 @RequestMapping("/api")
+@RequiredArgsConstructor
 public class ApiController {
     private final StatisticsService statisticsService;
     private final IndexingService indexingService;
+    private final SearchService searchService;
     public static boolean isIndexingInProgress = false;
     Logger logger = LoggerFactory.getLogger(ApiController.class);
 
-    public ApiController(StatisticsService statisticsService, IndexingService indexingService) {
-        this.statisticsService = statisticsService;
-        this.indexingService = indexingService;
-    }
 
     @GetMapping("/statistics")
     public ResponseEntity<StatisticsResponse> statistics() {
@@ -97,5 +100,21 @@ public class ApiController {
 
         ResponseEntity<IndexingResponse> responseEntity = ResponseEntity.ok(response);
         return responseEntity;
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<SearchResponse> indexPage(
+            @RequestParam("query") String query,
+            @RequestParam("offset") int offset,
+            @RequestParam("limit") int limit,
+            @RequestParam("site") String siteUrl
+            ) {
+        logger.info("\n" + "Query: " + query + " | " + siteUrl + "\n" +"offset: " + offset + " | " + "limit: " + limit +"\n");
+        searchService.search(query,offset,limit, siteUrl);
+        SearchResponse response = new SearchResponse();
+        response.setResult(true);
+        response.setCount(900);
+        response.setData(Arrays.asList(new SiteSearchData[]{}));
+        return ResponseEntity.ok(response);
     }
 }
