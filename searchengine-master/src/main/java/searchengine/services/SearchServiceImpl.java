@@ -41,7 +41,12 @@ public class SearchServiceImpl implements SearchService {
 
         HashSet<String> setLemmas = new HashSet<>(listLemmas);
         logger.info("Lemmas " + setLemmas);
-        findLemmas(setLemmas);
+        List<Lemma> lemmaList = findLemmas(setLemmas);
+        HashMap<PageModel, Integer> maxPageWeight = calculateRelevanceMaxPage(lemmaList);
+        setLemmas.forEach(lemma ->{
+            SiteSearchData site = new SiteSearchData();
+            site.setSiteName(lemma);
+        });
 
         SearchResponse response = new SearchResponse();
         response.setResult(true);
@@ -50,29 +55,45 @@ public class SearchServiceImpl implements SearchService {
         return response;
     }
 
-    private List<Lemma> findLemmas(HashSet<String> setLemmas){
-        List<Lemma> lemmaList= new ArrayList<>();
-        setLemmas.forEach(lemmaName ->{
+    private List<Lemma> findLemmas(HashSet<String> setLemmas) {
+        List<Lemma> lemmaList = new ArrayList<>();
+        setLemmas.forEach(lemmaName -> {
             Lemma lemma = lemmaRepository.findByLemma(lemmaName).stream().findAny().orElse(null);
-            if(lemma != null) lemmaList.add(lemma);
+            if (lemma != null) lemmaList.add(lemma);
         });
         Collections.sort(lemmaList);
-        lemmaList.forEach(l->{
-            List<PageModel> pagesByLemma = findPageByLemma(l);
-        });
         return lemmaList;
     }
 
-    private List<PageModel> findPageByLemma(Lemma lemma){
+    private List<PageModel> findPageByLemma(Lemma lemma) {
         List<IndexModel> indexModels = indexRepository.findByOwnerLemma(lemma).stream().toList();
-        indexModels.forEach(l->{
-            logger.info("Index:" + l.getOwnerLemma().getId() + " | " + l.getOwnerPage().getId());
-        });
         List<PageModel> pageModels = new ArrayList<>();
-        indexModels.forEach(i->{
+        indexModels.forEach(i -> {
             PageModel page = pageModelRepository.findById(i.getOwnerPage().getId()).stream().findAny().orElse(null);
             if (page != null) pageModels.add(page);
         });
         return pageModels;
+    }
+
+    private HashMap<PageModel, Integer> calculateRelevanceMaxPage(List<Lemma> lemmaList) {
+        HashMap<PageModel, Integer> pageMap = new HashMap<>();
+        lemmaList.forEach(lemma -> {
+            List<PageModel> pagesByLemma = findPageByLemma(lemma);
+            pagesByLemma.forEach(page -> {
+                if (pageMap.containsKey(page)) {
+                    pageMap.put(page, pageMap.get(page) + lemma.getFrequency());
+                } else {
+                    pageMap.put(page, lemma.getFrequency());
+                }
+            });
+        });
+        for (Map.Entry<PageModel,Integer> item : pageMap.entrySet()){
+            logger.info("Page:" + item.getKey().getId() + " maxWeight " + item.getValue());
+        }
+        return pageMap;
+    }
+
+    private Double calculateRelevancePage(int pageMaxWeight, int lemmaFrequency){
+        return (double) pageMaxWeight / lemmaFrequency;
     }
 }
