@@ -1,16 +1,18 @@
 package searchengine.services;
 
 import lombok.RequiredArgsConstructor;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import searchengine.config.SitesList;
 import searchengine.dto.search.SearchResponse;
 import searchengine.dto.search.SiteSearchData;
 import searchengine.model.IndexModel;
 import searchengine.model.Lemma;
 import searchengine.model.PageModel;
-import searchengine.model.SiteModel;
 import searchengine.repositories.IndexRepository;
 import searchengine.repositories.LemmaRepository;
 import searchengine.repositories.PageModelRepository;
@@ -18,6 +20,7 @@ import searchengine.repositories.SiteModelRepository;
 import searchengine.services.site_indexing.TextParsing;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Service
 @RequiredArgsConstructor
@@ -43,9 +46,19 @@ public class SearchServiceImpl implements SearchService {
         logger.info("Lemmas " + setLemmas);
         List<Lemma> lemmaList = findLemmas(setLemmas);
         HashMap<PageModel, Integer> maxPageWeight = calculateRelevanceMaxPage(lemmaList);
-        setLemmas.forEach(lemma ->{
+        lemmaList.forEach(lemma -> {
             SiteSearchData site = new SiteSearchData();
-            site.setSiteName(lemma);
+            site.setSite(lemma.getOwner().getUrl());
+            site.setSiteName(lemma.getOwner().getName());
+            IndexModel index = indexRepository.findByOwnerLemma(lemma).stream().findAny().orElse(null);
+            if (index != null) {
+                site.setUri(index.getOwnerPage().getPath());
+                site.setTitle(getTitlePage(index.getOwnerPage()));
+                Double relevance = calculateRelevancePage(maxPageWeight.get(index.getOwnerPage()), lemma.getFrequency());
+                site.setRelevance(relevance);
+                site.setSnippet(getSnippetPage(index.getOwnerPage(), lemma));
+            }
+            logger.info("Created new SiteInfo " + site);
         });
 
         SearchResponse response = new SearchResponse();
@@ -87,13 +100,44 @@ public class SearchServiceImpl implements SearchService {
                 }
             });
         });
-        for (Map.Entry<PageModel,Integer> item : pageMap.entrySet()){
+        for (Map.Entry<PageModel, Integer> item : pageMap.entrySet()) {
             logger.info("Page:" + item.getKey().getId() + " maxWeight " + item.getValue());
         }
         return pageMap;
     }
 
-    private Double calculateRelevancePage(int pageMaxWeight, int lemmaFrequency){
+    private Double calculateRelevancePage(int pageMaxWeight, int lemmaFrequency) {
         return (double) pageMaxWeight / lemmaFrequency;
+    }
+
+    private String getTitlePage(PageModel page) {
+        Document document = Jsoup.parse(page.getContent(), page.getPath());
+        Elements elements = document.select("title");
+        StringBuilder title = new StringBuilder();
+        for (Element a : elements) {
+            logger.info("getTitlePage: " + a.html());
+            title.append(a.html());
+        }
+        return title.toString();
+    }
+
+    private String getSnippetPage(PageModel page, Lemma lemma) {
+        Document document = Jsoup.parse(page.getContent(), page.getPath());
+        Elements elements = document.select("body").select("p");
+        String snippet = null;
+        for (Element a : elements) {
+            List<String> normalText = TextParsing.splitTextIntoWords(a.html()).stream()
+                    .filter(TextParsing::isNotServicePart)
+                    .map(TextParsing::normFormsWord)
+                    .toList();
+            logger.info("normalText: " + normalText);
+            logger.info("Lemma: " + lemma.getLemma());
+            if (normalText.contains(lemma.getLemma())) {
+                snippet = a.html();
+                logger.info("Lemma: contains_____________________________");
+                break;
+            }
+        }
+        return snippet;
     }
 }
