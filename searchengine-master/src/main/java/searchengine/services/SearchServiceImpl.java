@@ -20,7 +20,7 @@ import searchengine.repositories.SiteModelRepository;
 import searchengine.services.site_indexing.TextParsing;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 @RequiredArgsConstructor
@@ -37,13 +37,14 @@ public class SearchServiceImpl implements SearchService {
     public SearchResponse search(String query, int offset, int limit, List<String> siteUrl) {
 
         logger.info("Sites " + siteUrl.size() + " | " + siteUrl);
+        List<SiteSearchData> siteSearchDataList = new ArrayList<>();
+        AtomicInteger count = new AtomicInteger();
         List<String> listLemmas = TextParsing.splitTextIntoWords(query).stream()
                 .filter(TextParsing::isNotServicePart)
                 .map(TextParsing::normFormsWord)
                 .toList();
 
         HashSet<String> setLemmas = new HashSet<>(listLemmas);
-        logger.info("Lemmas " + setLemmas);
         List<Lemma> lemmaList = findLemmas(setLemmas);
         HashMap<PageModel, Integer> maxPageWeight = calculateRelevanceMaxPage(lemmaList);
         lemmaList.forEach(lemma -> {
@@ -59,12 +60,14 @@ public class SearchServiceImpl implements SearchService {
                 site.setSnippet(getSnippetPage(index.getOwnerPage(), lemma));
             }
             logger.info("Created new SiteInfo " + site);
+            siteSearchDataList.add(site);
+            count.getAndIncrement();
         });
 
         SearchResponse response = new SearchResponse();
         response.setResult(true);
-        response.setCount(900);
-        response.setData(Arrays.asList(new SiteSearchData[]{}));
+        response.setCount(count.get());
+        response.setData(siteSearchDataList);
         return response;
     }
 
@@ -100,14 +103,11 @@ public class SearchServiceImpl implements SearchService {
                 }
             });
         });
-        for (Map.Entry<PageModel, Integer> item : pageMap.entrySet()) {
-            logger.info("Page:" + item.getKey().getId() + " maxWeight " + item.getValue());
-        }
         return pageMap;
     }
 
     private Double calculateRelevancePage(int pageMaxWeight, int lemmaFrequency) {
-        return (double) pageMaxWeight / lemmaFrequency;
+        return lemmaFrequency /(double) pageMaxWeight ;
     }
 
     private String getTitlePage(PageModel page) {
@@ -130,11 +130,9 @@ public class SearchServiceImpl implements SearchService {
                     .filter(TextParsing::isNotServicePart)
                     .map(TextParsing::normFormsWord)
                     .toList();
-            logger.info("normalText: " + normalText);
-            logger.info("Lemma: " + lemma.getLemma());
             if (normalText.contains(lemma.getLemma())) {
-                snippet = a.html();
-                logger.info("Lemma: contains_____________________________");
+                int maxLength = Math.min(a.html().length(), 1000);
+                snippet = a.html().substring(0, maxLength);
                 break;
             }
         }
