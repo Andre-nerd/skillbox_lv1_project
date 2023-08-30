@@ -134,6 +134,7 @@ public class IndexingServiceImpl implements IndexingService {
                 //https://www.playback.ru/payment.html
                 //https://www.playback.ru/dostavka.html
                 //https://www.lenta.ru/rubrics/world/
+                //https://www.lenta.ru/rubrics/russia/
                 //item.getValue().forEach(this::parsingPage);
 
             } catch (Exception ex) {

@@ -36,7 +36,6 @@ public class SearchServiceImpl implements SearchService {
     @Override
     public SearchResponse search(String query, int offset, int limit, List<String> siteUrl) {
 
-        logger.info("Sites " + siteUrl.size() + " | " + siteUrl);
         List<SiteSearchData> siteSearchDataList = new ArrayList<>();
         AtomicInteger count = new AtomicInteger();
         List<String> listLemmas = TextParsing.splitTextIntoWords(query).stream()
@@ -139,3 +138,4 @@ public class SearchServiceImpl implements SearchService {
         return snippet;
     }
 }
+//страна россия правительство издание информация мир стоимость обговаривается осуществляется вез вскоре, поле в реке
