@@ -1,7 +1,8 @@
 package searchengine.services;
 
 import org.springframework.web.bind.annotation.RequestParam;
+import searchengine.dto.search.SearchResponse;
 
 public interface SearchService {
-    void search(String query, int offset, int limit, String siteUrl);
+    SearchResponse search(String query, int offset, int limit, String siteUrl);
 }

@@ -110,11 +110,7 @@ public class ApiController {
             @RequestParam("site") String siteUrl
             ) {
         logger.info("\n" + "Query: " + query + " | " + siteUrl + "\n" +"offset: " + offset + " | " + "limit: " + limit +"\n");
-        searchService.search(query,offset,limit, siteUrl);
-        SearchResponse response = new SearchResponse();
-        response.setResult(true);
-        response.setCount(900);
-        response.setData(Arrays.asList(new SiteSearchData[]{}));
+        SearchResponse response = searchService.search(query,offset,limit, siteUrl);
         return ResponseEntity.ok(response);
     }
 }
