@@ -236,11 +236,10 @@ public class IndexingServiceImpl implements IndexingService {
     public SiteModel propertiesContainsHost(String host) {
         logger.info("find host: " + host);
         Site siteInProperties = getSiteFromProperties(host);
-        logger.info("Sites in properties: " + siteInProperties);
         SiteModel site = null;
         if (siteInProperties != null) {
             site = siteModelRepository.findByName(siteInProperties.getName()).stream().findAny().orElse(null);
-            logger.info("Find: " + site + " in BD");
+            logger.info("Find: " + host + " in BD");
             if (site == null){
                 site = new SiteModel();
                 site.setUrl(siteInProperties.getUrl());
@@ -253,7 +252,7 @@ public class IndexingServiceImpl implements IndexingService {
         return (site);
     }
 
-    private Site getSiteFromProperties(String host){
+    public Site getSiteFromProperties(String host){
         List<Site> siteList = sites.getSites();
         Site findSite = null;
         for (Site item: siteList){

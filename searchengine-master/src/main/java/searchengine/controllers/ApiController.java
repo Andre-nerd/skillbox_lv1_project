@@ -3,8 +3,10 @@ package searchengine.controllers;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import searchengine.config.SitesList;
 import searchengine.dto.indexing.IndexingResponse;
 import searchengine.dto.search.SearchResponse;
 import searchengine.dto.search.SiteSearchData;
@@ -16,7 +18,10 @@ import searchengine.services.StatisticsService;
 
 import javax.servlet.http.HttpServletRequest;
 
+import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import static searchengine.controllers.Utils.ResponseCode.*;
 
@@ -27,6 +32,7 @@ public class ApiController {
     private final StatisticsService statisticsService;
     private final IndexingService indexingService;
     private final SearchService searchService;
+    public final SitesList sites;
     public static boolean isIndexingInProgress = false;
     Logger logger = LoggerFactory.getLogger(ApiController.class);
 
@@ -103,14 +109,38 @@ public class ApiController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<SearchResponse> indexPage(
+    public ResponseEntity<SearchResponse> search(
             @RequestParam("query") String query,
             @RequestParam("offset") int offset,
             @RequestParam("limit") int limit,
-            @RequestParam("site") String siteUrl
+            @RequestParam(value  = "site", required = false) String siteUrl
             ) {
         logger.info("\n" + "Query: " + query + " | " + siteUrl + "\n" +"offset: " + offset + " | " + "limit: " + limit +"\n");
-        SearchResponse response = searchService.search(query,offset,limit, siteUrl);
+        SearchResponse response = new SearchResponse();
+        if(query == null || query.isBlank()){
+            response.setError(EMPTY_SEARCH_TERM);
+            return ResponseEntity.status(EMPTY_SEARCH_TERM_CODE).body(response);
+        }
+        List<String> sitesList = new ArrayList<>();
+        if(siteUrl == null){
+            sites.getSites().forEach(s -> sitesList.add(s.getUrl()));
+        } else {
+            try {
+                String host = new java.net.URI(siteUrl).getHost();
+                SiteModel siteModel = indexingService.propertiesContainsHost(host);
+                if (siteModel == null) {
+                    response.setError(PAGE_NOT_FOUND);
+                    return ResponseEntity.status(PAGE_NOT_FOUND_CODE).body(response);
+                } else {
+                    sitesList.add(siteUrl);
+                }
+            } catch (URISyntaxException e) {
+                logger.info("ApiController/search | " + PAGE_NOT_FOUND);
+                response.setError(PAGE_NOT_FOUND);
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            }
+        }
+        response = searchService.search(query,offset,limit, sitesList);
         return ResponseEntity.ok(response);
     }
 }
