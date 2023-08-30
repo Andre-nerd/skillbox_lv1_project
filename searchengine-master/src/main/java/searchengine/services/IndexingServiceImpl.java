@@ -139,7 +139,8 @@ public class IndexingServiceImpl implements IndexingService {
                 // Работу функционала парсинга можно проверить на индексации отдельной ссылки
                 //https://www.playback.ru/payment.html
                 //https://www.playback.ru/dostavka.html
-               // item.getValue().forEach(this::parsingPage);
+                //https://www.lenta.ru/rubrics/world/
+                //item.getValue().forEach(this::parsingPage);
 
             } catch (Exception ex) {
                 logger.info("Error >> writeCachePagesToBD()" + ex);
@@ -211,6 +212,9 @@ public class IndexingServiceImpl implements IndexingService {
             Lemma lemma = saveLemmaToBD(page.getOwner(), item.getKey());
             saveIndexToBD(page,lemma, item.getValue());
         }
+        logger.info("Parsing page: " + page.getPath() + " finished");
+        logger.info(">");
+
     }
     private Lemma saveLemmaToBD(SiteModel site,String lemmaWord){
         Lemma lemma = lemmaRepository.findByLemma(lemmaWord).stream().findAny().orElse(null);

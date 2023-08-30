@@ -8,7 +8,15 @@ import searchengine.dto.statistics.DetailedStatisticsItem;
 import searchengine.dto.statistics.StatisticsData;
 import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.dto.statistics.TotalStatistics;
+import searchengine.model.Lemma;
+import searchengine.model.PageModel;
+import searchengine.model.SiteModel;
+import searchengine.repositories.IndexRepository;
+import searchengine.repositories.LemmaRepository;
+import searchengine.repositories.PageModelRepository;
+import searchengine.repositories.SiteModelRepository;
 
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -17,6 +25,10 @@ import java.util.Random;
 @RequiredArgsConstructor
 public class StatisticsServiceImpl implements StatisticsService {
 
+    private final SiteModelRepository siteModelRepository;
+    private final PageModelRepository pageModelRepository;
+    private final LemmaRepository lemmaRepository;
+    private final IndexRepository indexRepository;
     private final Random random = new Random();
     private final SitesList sites;
 
@@ -37,17 +49,17 @@ public class StatisticsServiceImpl implements StatisticsService {
         List<Site> sitesList = sites.getSites();
         for(int i = 0; i < sitesList.size(); i++) {
             Site site = sitesList.get(i);
+            SiteModel siteModel = siteModelRepository.findByName(site.getName()).stream().findAny().orElse(null);
             DetailedStatisticsItem item = new DetailedStatisticsItem();
             item.setName(site.getName());
             item.setUrl(site.getUrl());
-            int pages = random.nextInt(1_000);
-            int lemmas = pages * random.nextInt(1_000);
+            int pages = findAllPagesBySite(siteModel);
+            int lemmas = findAllLemmasBySite(siteModel);
             item.setPages(pages);
             item.setLemmas(lemmas);
-            item.setStatus(statuses[i % 3]);
-            item.setError(errors[i % 3]);
-            item.setStatusTime(System.currentTimeMillis() -
-                    (random.nextInt(10_000)));
+            item.setStatus(siteModel.getStatus().name());
+            item.setError(siteModel.getLast_error());
+            item.setStatusTime(System.currentTimeMillis() - siteModel.getStatus_time().toEpochSecond(ZoneOffset.UTC));
             total.setPages(total.getPages() + pages);
             total.setLemmas(total.getLemmas() + lemmas);
             detailed.add(item);
@@ -60,5 +72,29 @@ public class StatisticsServiceImpl implements StatisticsService {
         response.setStatistics(data);
         response.setResult(true);
         return response;
+    }
+
+    private int findAllPagesBySite(SiteModel site){
+        if (site == null) return 0;
+        List<PageModel> pageModelList = pageModelRepository.findAll().stream().toList();
+        int count  = 0;
+        for (PageModel item : pageModelList){
+            if(item.getOwner().getName().equals(site.getName())){
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private int findAllLemmasBySite(SiteModel site){
+        if (site == null) return 0;
+        List<Lemma> lemmaList = lemmaRepository.findAll().stream().toList();
+        int count  = 0;
+        for (Lemma item : lemmaList){
+            if(item.getOwner().getName().equals(site.getName())){
+                count++;
+            }
+        }
+        return count;
     }
 }
