@@ -1,6 +1,6 @@
 # example values
 
-user-agent: YaSearchBot/1.02 (Windows; U; WindowsNT)
+
 indexing-settings:
   sites:
     - url: https://www.lenta.ru
@@ -9,6 +9,7 @@ indexing-settings:
 #      name: Skillbox
     - url: https://www.playback.ru
       name: PlayBack.Ru
+  user-agent: YaSearchBot/1.02 (Windows; U; WindowsNT)
 
 server:
   port: 8080

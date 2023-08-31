@@ -9,6 +9,7 @@ import org.jsoup.nodes.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,9 +42,10 @@ import static searchengine.services.site_indexing.MappingSiteRecursiveCycle.TIME
 @Getter
 @Setter
 public class IndexingServiceImpl implements IndexingService {
-
-    @Value("${user-agent.name}")
-    public static String userAgentName = "Ya bot/12.01";
+    
+    @Value("${indexing-settings.user-agent}")
+    String USER_AGENT;
+    public static String userAgentName;
 
     private final SiteModelRepository siteModelRepository;
     private final PageModelRepository pageModelRepository;
@@ -66,6 +68,7 @@ public class IndexingServiceImpl implements IndexingService {
     public void startIndexing() {
         isIndexingInProgress = true;
         logger.info(ServicesMessage.INDEXING_IN_PROGRESS);
+        userAgentName = USER_AGENT;
         List<Site> sitesLists = sites.getSites();
 
         for (Site item : sitesLists) {

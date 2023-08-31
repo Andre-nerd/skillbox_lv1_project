@@ -62,7 +62,7 @@ public class MappingSiteRecursiveCycle extends RecursiveAction {
                 return;
             }
             Connection connection = Jsoup.connect(node.getUrl())
-                    .userAgent("FinderSearchBot/1.01 (Windows; U; WindowsNT)")
+                    .userAgent(userAgentName)
                     .timeout(TIME_OUT);
 
             Document page = connection.get();
