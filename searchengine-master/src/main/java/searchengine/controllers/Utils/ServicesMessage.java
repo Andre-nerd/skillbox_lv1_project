@@ -1,4 +1,4 @@
-package searchengine.services;
+package searchengine.controllers.Utils;
 
 public class ServicesMessage {
     public static final String INDEXING_IN_PROGRESS = "Indexing in progress";

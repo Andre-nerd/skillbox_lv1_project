@@ -15,8 +15,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @ConfigurationProperties(prefix = "indexing-settings")
 public class DefaultController {
 
-    Logger logger = LoggerFactory.getLogger(DefaultController.class);
-
     /**
      * Метод формирует страницу из HTML-файла index.html,
      * который находится в папке resources/templates.

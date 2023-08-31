@@ -9,12 +9,12 @@ import org.jsoup.nodes.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import searchengine.config.Site;
 import searchengine.config.SitesList;
+import searchengine.controllers.Utils.ServicesMessage;
 import searchengine.model.*;
 import searchengine.repositories.IndexRepository;
 import searchengine.repositories.LemmaRepository;
@@ -42,7 +42,7 @@ import static searchengine.services.site_indexing.MappingSiteRecursiveCycle.TIME
 @Getter
 @Setter
 public class IndexingServiceImpl implements IndexingService {
-    
+
     @Value("${indexing-settings.user-agent}")
     String USER_AGENT;
     public static String userAgentName;
@@ -132,12 +132,12 @@ public class IndexingServiceImpl implements IndexingService {
             logger.info("Write Cache Pages To BD() size" + item.getValue().size());
             try {
                 pageModelRepository.saveAll(item.getValue());
-                // Пока закрыл, потому что парсинг страниц идет долго
-                // Работу функционала парсинга можно проверить на индексации отдельной ссылки
+                /** Пока закрыл, потому что парсинг страниц идет долго
+                *   Работу функционала парсинга можно проверить на индексации отдельной ссылки
+                 */
                 //https://www.playback.ru/payment.html
+                //https://www.lenta.ru/news/2023/08/30/praktik/
                 //https://www.playback.ru/dostavka.html
-                //https://www.lenta.ru/rubrics/world/
-                //https://www.lenta.ru/rubrics/russia/
                 //item.getValue().forEach(this::parsingPage);
 
             } catch (Exception ex) {
@@ -185,6 +185,7 @@ public class IndexingServiceImpl implements IndexingService {
 
     @Override
     public void indexOnePage(String path, SiteModel site) {
+        userAgentName = USER_AGENT;
         try {
             PageModel page = new PageModel();
             page.setPath(path);
@@ -198,7 +199,7 @@ public class IndexingServiceImpl implements IndexingService {
             pageModelRepository.save(page);
             parsingPage(page);
         } catch (Exception ex) {
-            logger.info("Error > IndexingService fun indexOnePage");
+            logger.info("Error > IndexingService fun indexOnePage" + ex);
         }
     }
 

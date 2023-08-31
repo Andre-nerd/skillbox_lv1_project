@@ -57,9 +57,11 @@ public class StatisticsServiceImpl implements StatisticsService {
             int lemmas = findAllLemmasBySite(siteModel);
             item.setPages(pages);
             item.setLemmas(lemmas);
-            item.setStatus(siteModel.getStatus().name());
-            item.setError(siteModel.getLast_error());
-            item.setStatusTime(System.currentTimeMillis() - siteModel.getStatus_time().toEpochSecond(ZoneOffset.UTC));
+            if(siteModel != null) {
+                item.setStatus(siteModel.getStatus().name());
+                item.setError(siteModel.getLast_error());
+                item.setStatusTime(System.currentTimeMillis() - siteModel.getStatus_time().toEpochSecond(ZoneOffset.UTC));
+            }
             total.setPages(total.getPages() + pages);
             total.setLemmas(total.getLemmas() + lemmas);
             detailed.add(item);

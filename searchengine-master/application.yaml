@@ -1,12 +1,7 @@
-# example values
-
-
 indexing-settings:
   sites:
     - url: https://www.lenta.ru
       name: Лента.ру
-#    - url: https://www.skillbox.ru
-#      name: Skillbox
     - url: https://www.playback.ru
       name: PlayBack.Ru
   user-agent: YaSearchBot/1.02 (Windows; U; WindowsNT)

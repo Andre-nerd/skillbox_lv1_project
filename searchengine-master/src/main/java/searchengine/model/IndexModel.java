@@ -26,16 +26,6 @@ public class IndexModel {
 
     @Column(name = "`rank`")
     private int rank;
-
-//    @Override
-//    public String toString() {
-//        return "IndexModel{" +
-//                "id=" + id +
-//                ", ownerPage=" + ownerPage.getId() +
-//                ", ownerLemma=" + ownerLemma.getId() +
-//                ", rank=" + rank +
-//                '}';
-//    }
 }
 
 /** CREATE TABLE `index` (

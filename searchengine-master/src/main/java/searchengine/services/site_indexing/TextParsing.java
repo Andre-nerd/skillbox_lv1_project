@@ -12,23 +12,9 @@ import java.lang.reflect.Array;
 import java.util.*;
 
 public class TextParsing {
-    public static String testText = "Повторное района появление леопарда в Осетии позволяет предположить,\n" +
-            "что леопард постоянно обитает в некоторых районах Северного\n" +
-            "Кавказа.<> href ah kl;sd  iserfmd nxfjkj @ </// <.//// Обитать, кавказ район\n";
     public static String[] ServiceParts = new String[]{"СОЮЗ", "ПРЕДЛ", "МЕЖД"};
     ;
     private static final Logger logger = LoggerFactory.getLogger(TextParsing.class);
-
-    public static void main(String[] args) throws IOException {
-        TextParsing parsing = new TextParsing();
-        List<String> sourceTextList = parsing.splitTextIntoWords(testText);
-        System.out.println(sourceTextList);
-//        List<String> filterText = sourceTextList.stream().filter(TextParsing::isNotServicePart).toList();
-//        System.out.println(filterText);
-//        HashMap<String, Integer> map = parsingText(filterText);
-//        System.out.println(map);
-
-    }
 
     public HashMap<String, Integer> parsingOnePageText(String pageText){
         List<String> sourceTextList = splitTextIntoWords(pageText);
